@@ -88,7 +88,25 @@ class WinGetClient:
 
     def _humanize_error(self, output: str, args: List[str]) -> str:
         low = output.lower()
-        if 'access denied' in low or 'permiso' in low or 'administrator' in low or 'administrador' in low:
+        # Si winget volcó la ayuda (flag inválido, uso incorrecto), las
+        # heurísticas por palabras dan falsos positivos ("administrador"
+        # aparece en la ayuda): devolver las primeras líneas con el error real.
+        if ('uso: winget' in low or 'usage:' in low
+                or 'disponibles las siguientes opciones' in low
+                or 'available options' in low):
+            lines = [ln.strip() for ln in output.strip().split('\n') if ln.strip()]
+            body = [ln for ln in lines
+                    if not ln.lower().startswith(('administrador de paquetes',
+                                                  '©', '(c)'))]
+            text = ' '.join(body[:3])
+            if text:
+                return f'Error de WinGet: {text[:300]}'
+        # Permisos: solo señales fuertes (la ayuda menciona "administrador"
+        # y antes provocaba falsos positivos).
+        if ('access denied' in low or 'acceso denegado' in low
+                or '0x80070005' in low or 'permission denied' in low
+                or 'permiso denegado' in low or 'sin permiso' in low
+                or 'elevat' in low or 'elevaci' in low):
             return 'No tienes permisos suficientes. Ejecuta la aplicación como administrador.'
         if 'network' in low or 'connection' in low or 'internet' in low or 'conexión' in low:
             return 'Error de conexión. Verifica tu conexión a internet.'
@@ -465,11 +483,15 @@ class WinGetClient:
 
     @staticmethod
     def _action_args(command: str, package_id: str, silent: bool) -> List[str]:
+        # OJO: `uninstall` NO acepta --accept-package-agreements (winget lo
+        # rechaza volcando la ayuda). Solo install/upgrade lo admiten.
         args = [
             command, '--id', package_id, '--exact',
-            '--accept-package-agreements', '--accept-source-agreements',
+            '--accept-source-agreements',
             '--disable-interactivity',
         ]
+        if command in ('install', 'upgrade'):
+            args.append('--accept-package-agreements')
         if silent and command in ('install', 'upgrade', 'uninstall'):
             args.append('--silent')
         return args

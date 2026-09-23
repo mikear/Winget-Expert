@@ -29,6 +29,13 @@ against winget 1.29 (Spanish locale):
 - `winget list` "Disponible" is empty for most rows — never treat source text as
   a version (regression test: `available_version not in ('winget','msstore')`).
 
+## WinGet CLI flags
+
+- `uninstall` rejects `--accept-package-agreements` (dumps full help text);
+  only install/upgrade take it — see `_action_args()`.
+- `_humanize_error()` must skip keyword heuristics when the output looks like
+  help/usage (help text mentions "administrador" → false permission errors).
+
 ## Threading contract
 
 - Long ops run in `WorkerThread`/`StreamWorker` (QThread); never touch widgets
