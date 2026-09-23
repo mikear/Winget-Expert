@@ -662,3 +662,49 @@ class OperationDialog(QDialog):
             self.worker.cancel()
             self.worker.wait(15000)
         super().closeEvent(event)
+
+
+class WinGetMissingDialog(QDialog):
+    """Aviso cuando WinGet no está instalado, con solución y reintento.
+
+    Códigos: Accepted = reintentar, Rejected = salir, OPEN_STORE = abrir
+    la ficha de "Instalador de aplicación" en Microsoft Store.
+    """
+    OPEN_STORE = 2
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("WinGet no encontrado")
+        self.setMinimumWidth(540)
+        self.setModal(True)
+
+        layout = QVBoxLayout(self)
+        layout.addWidget(QLabel("<h2>No se encontró WinGet</h2>"))
+
+        info = QLabel(
+            "Esta aplicación necesita <b>Windows Package Manager (WinGet)</b> "
+            "y no está instalado o no está en el PATH del sistema.<br><br>"
+            "<b>Para solucionarlo:</b>"
+            "<ol>"
+            "<li>Instala <b>Instalador de aplicación</b> desde Microsoft Store "
+            "(botón de abajo) o desde https://aka.ms/getwinget.</li>"
+            "<li>Vuelve aquí y pulsa <b>Reintentar</b>.</li>"
+            "</ol>"
+            "Sin WinGet la aplicación no puede listar ni gestionar paquetes.")
+        info.setWordWrap(True)
+        info.setOpenExternalLinks(True)
+        layout.addWidget(info)
+
+        buttons = QHBoxLayout()
+        buttons.addStretch(1)
+        retry_btn = QPushButton("Reintentar")
+        retry_btn.setDefault(True)
+        retry_btn.clicked.connect(self.accept)
+        buttons.addWidget(retry_btn)
+        store_btn = QPushButton("Abrir Microsoft Store")
+        store_btn.clicked.connect(lambda: self.done(WinGetMissingDialog.OPEN_STORE))
+        buttons.addWidget(store_btn)
+        exit_btn = QPushButton("Salir")
+        exit_btn.clicked.connect(self.reject)
+        buttons.addWidget(exit_btn)
+        layout.addLayout(buttons)

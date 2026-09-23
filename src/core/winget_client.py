@@ -36,6 +36,22 @@ class WinGetClient:
         # (solo existe en Windows; en otros SO vale 0).
         self.creationflags = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
 
+    @staticmethod
+    def find_winget() -> Optional[str]:
+        """Ruta al ejecutable de winget o None si no está en el PATH."""
+        import shutil
+        return shutil.which('winget')
+
+    def is_available(self) -> bool:
+        """Verifica que winget exista y responda (chequeo de arranque)."""
+        if not self.find_winget():
+            return False
+        try:
+            result = self._run_raw(['--version'], timeout=30)
+        except (OSError, subprocess.TimeoutExpired):
+            return False
+        return result.returncode == 0
+
     # ------------------------------------------------------------------ #
     # Ejecución básica
     # ------------------------------------------------------------------ #

@@ -4,10 +4,10 @@ Ventana principal de la aplicación WinGet GUI Manager
 import webbrowser
 from datetime import datetime
 
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QAction, QColor, QGuiApplication
 from PySide6.QtWidgets import (
-    QComboBox, QFileDialog, QHBoxLayout, QHeaderView, QLineEdit, QMenu,
+    QComboBox, QDialog, QFileDialog, QHBoxLayout, QHeaderView, QLineEdit, QMenu,
     QMessageBox, QProgressBar, QPushButton, QStatusBar, QTableWidget,
     QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
     QMainWindow, QCheckBox, QLabel,
@@ -19,7 +19,7 @@ from src.core.winget_client import WinGetClient
 from src.core.models import Package
 from src.ui.dialogs import (
     InstallDialog, OperationDialog, PackageDetailsDialog, RestoreDialog,
-    SourcesDialog, StreamWorker,
+    SourcesDialog, StreamWorker, WinGetMissingDialog,
 )
 from src.ui.additional_dialogs import FilterSettingsDialog, UserManualDialog
 from src.ui.theme import apply_theme
@@ -69,10 +69,13 @@ class MainWindow(QMainWindow):
         self.init_ui()
         self.restore_geometry()
 
-        # Cargar paquetes al iniciar
-        self.refresh_packages()
-        if self.settings.auto_check_updates:
-            self.show_updates()
+        # Verificar WinGet antes de cargar nada; sin él no hay nada que gestionar
+        if self._ensure_winget():
+            self.refresh_packages()
+            if self.settings.auto_check_updates:
+                self.show_updates()
+        else:
+            QTimer.singleShot(0, self.close)
 
     # ------------------------------------------------------------------ #
     # Ciclo de vida
@@ -92,6 +95,26 @@ class MainWindow(QMainWindow):
             self.restoreGeometry(geometry)
         else:
             self.setGeometry(100, 100, 1200, 760)
+
+    def _ensure_winget(self) -> bool:
+        """Verifica WinGet al arrancar y guía al usuario si falta.
+
+        Retorna True si se puede continuar, False si el usuario elige salir.
+        """
+        from PySide6.QtGui import QDesktopServices
+        from PySide6.QtCore import QUrl
+        while not self.client.is_available():
+            dialog = WinGetMissingDialog(self)
+            code = dialog.exec()
+            dialog.deleteLater()
+            if code == WinGetMissingDialog.OPEN_STORE:
+                QDesktopServices.openUrl(
+                    QUrl('ms-windows-store://pdp/?ProductId=9NBLGGH4NNS1'))
+                continue  # re-verificar por si ya lo instaló
+            if code == QDialog.DialogCode.Accepted:  # Reintentar
+                continue
+            return False  # Salir (o X)
+        return True
 
     # ------------------------------------------------------------------ #
     # UI
