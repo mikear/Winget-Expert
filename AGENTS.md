@@ -10,7 +10,8 @@ Entry: `main.py` → `MainWindow` (`src/ui/main_window.py`).
 - `src/core/install_dates.py` — read-only install dates (registry + Appx,
   cached; refresh inside a worker, never on UI thread — Appx shells to PowerShell)
 - `src/core/settings.py` — JSON in `%APPDATA%\WinGet GUI Manager\settings.json`
-- `src/ui/` — `main_window.py`, `dialogs.py` (incl. `StreamWorker`, `OperationDialog`), `additional_dialogs.py`, `theme.py`
+- `src/ui/` — `main_window.py`, `dialogs.py` (incl. `StreamWorker`,
+  `OperationDialog`, `WinGetMissingDialog`), `additional_dialogs.py`, `theme.py`
 - `debug_winget.py` — capture real winget output for parser work
 - `winget_gui.spec` — PyInstaller one-file build; `assets/` (icon, FA font) bundled via `datas`
 
@@ -58,11 +59,23 @@ against winget 1.29 (Spanish locale):
 - IDs starting `MSIX\` / `ARP\` are local entries, not catalog packages:
   `show` degrades to local data, pin is refused with a message, and they never
   appear as upgradable.
+- `search_packages()` with no matches returns `([], None)`, not an error
+  (winget exits non-zero; the UI shows "0 resultados").
+
+## Startup gate
+
+- `MainWindow.__init__` calls `_ensure_winget()` before loading anything:
+  `WinGetClient.is_available()` (`shutil.which` + `winget --version`).
+- If missing, `WinGetMissingDialog` offers Retry / Microsoft Store
+  (`ms-windows-store://pdp/?ProductId=9NBLGGH4NNS1`, then re-check) / Exit.
+  Exit path is `QTimer.singleShot(0, self.close)` — never `sys.exit()` from UI code.
+- Destroy the dialog (`deleteLater()`) after `exec()`; hidden children linger
+  and `findChildren(QDialog)` will return stale ones.
 
 ## Verify (no test suite in repo)
 
 ```powershell
-python -m py_compile main.py src/core/models.py src/core/settings.py src/core/winget_client.py src/ui/main_window.py src/ui/dialogs.py src/ui/additional_dialogs.py src/ui/theme.py
+python -m py_compile main.py src/core/models.py src/core/settings.py src/core/winget_client.py src/core/install_dates.py src/ui/main_window.py src/ui/dialogs.py src/ui/additional_dialogs.py src/ui/theme.py
 $env:QT_QPA_PLATFORM='offscreen'; python -c "..."   # smoke: build MainWindow/dialogs
 ```
 
@@ -74,6 +87,10 @@ $env:QT_QPA_PLATFORM='offscreen'; python -c "..."   # smoke: build MainWindow/di
 - Offscreen GUI tests: patch `QMessageBox.*` first — a modal popup blocks
   forever with no display. Note the app under test may also have a live
   instance running; concurrent winget calls can transiently fail.
+- `findChildren()` returns hidden widgets too — filter `isVisible()` when
+  driving dialogs from tests (a closed dialog stays parented until deleted).
+- Offscreen font rendering is broken (glyph boxes); take README screenshots
+  with a native-platform process instead (`docs/screenshots/`, real data).
 
 ## Shell notes (PowerShell 5.1)
 
@@ -81,6 +98,8 @@ $env:QT_QPA_PLATFORM='offscreen'; python -c "..."   # smoke: build MainWindow/di
 - Console is cp850/cp1252: `sys.stdout.reconfigure(encoding='utf-8')` in test
   scripts; never `print` emoji (use `[!]`/`[X]` style).
 - `python file.py | Select-Object -First N` instead of pipes to Unix tools.
+- `$variables` get mangled in inline `powershell -Command` strings — write a
+  temporary `.ps1` file and run it with `-File` instead.
 
 ## Packaging
 
@@ -90,3 +109,10 @@ $env:QT_QPA_PLATFORM='offscreen'; python -c "..."   # smoke: build MainWindow/di
 - Font Awesome (`assets/fonts/fa-solid-900.ttf`, CC BY 4.0 — keep the About
   attribution) loads at startup in `main.py`; works frozen via `sys._MEIPASS`.
 - Don't commit `build/`, `dist/`, `__pycache__/` (see `.gitignore`).
+- Exception: the release exe `dist/WinGet_GUI_Manager_Pro.exe` is tracked via
+  `git add -f` on purpose (README links it); rebuilds need the same flag.
+  Kill running exe instances first — Windows locks the file and the build
+  fails with `PermissionError`.
+- Frozen-exe crash with no output: check Event Viewer → Application, Error 1000
+  (`Qt6Core.dll`); then build a `--console --name WinGet_Debug` variant to see
+  the traceback (delete its `.spec`/exe/`build/` afterwards).
