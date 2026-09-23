@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# PyInstaller (el .exe se regenera con: pyinstaller winget_gui.spec)
+build/
+dist/
+*.spec.bak
+
+# Temporales Windows
+Thumbs.db
+Desktop.ini

@@ -1,0 +1,5 @@
+PySide6>=6.6.0
+# Solo necesarias para desarrollo / empaquetado:
+# pip install pyinstaller pillow
+pyinstaller>=6.0.0; sys_platform == 'win32'
+pillow>=10.0.0; sys_platform == 'win32'
