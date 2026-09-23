@@ -27,6 +27,11 @@ actualiza y desinstala aplicaciones de Windows sin tocar la terminal.
 - **Gestión de fuentes** de paquetes y limpieza de temporales.
 - Tema claro/oscuro, filtros, manual integrado (F1) y atajos de teclado.
 
+## Descarga
+
+**[WinGet_GUI_Manager_Pro.exe](https://github.com/mikear/Winget-Expert/raw/main/dist/WinGet_GUI_Manager_Pro.exe)**
+(~45 MB, portable: no requiere Python, doble clic y listo.)
+
 ## Requisitos
 
 - Windows 10 (1903+) o Windows 11, 64-bit.
