@@ -1,4 +1,4 @@
-# AGENTS.md — WinGet GUI Manager Pro
+# AGENTS.md — WinGet Expert
 
 Desktop app (PySide6) that wraps Windows `winget` CLI. Windows-only.
 Entry: `main.py` → `MainWindow` (`src/ui/main_window.py`).
@@ -10,10 +10,29 @@ Entry: `main.py` → `MainWindow` (`src/ui/main_window.py`).
 - `src/core/install_dates.py` — read-only install dates (registry + Appx,
   cached; refresh inside a worker, never on UI thread — Appx shells to PowerShell)
 - `src/core/settings.py` — JSON in `%APPDATA%\WinGet GUI Manager\settings.json`
+  (folder name kept for backwards compatibility even though the app is
+  branded "WinGet Expert")
 - `src/ui/` — `main_window.py`, `dialogs.py` (incl. `StreamWorker`,
-  `OperationDialog`, `WinGetMissingDialog`), `additional_dialogs.py`, `theme.py`
+  `OperationDialog`, `WinGetMissingDialog`), `additional_dialogs.py`,
+  `mensajes.py`, `splash.py`, `app_icon.py`, `theme.py`
+- `src/ui/mensajes.py` — ALL user-facing QMessageBox/QDialogButtonBox go
+  through this module: Qt standard buttons render in English otherwise
+  (Yes/No/OK/Cancel/Close). Never call `QMessageBox.question(...)` static
+  methods with StandardButton args; use `mensajes.pregunta/informar/
+  advertir/error/acerca_de` and `mensajes.botonera_*` instead.
+- `src/ui/app_icon.py` — single source of the app-icon design (rounded blue
+  square, white box, green download badge, same as the splash). The splash
+  paints it via `pintar_icono_app()`; `create_icon.py` renders
+  `assets/icon.ico|png` from it. Window/taskbar icon: `icono_aplicacion()`.
+- `tools/actualizar_imagenes_readme.py` — regenerates `docs/banner.png`
+  (exact splash render) + the 4 README screenshots with real data; MUST run
+  with the native Windows platform (offscreen breaks font rendering).
 - `debug_winget.py` — capture real winget output for parser work
 - `winget_gui.spec` — PyInstaller one-file build; `assets/` (icon, FA font) bundled via `datas`
+- `instalador.iss` — Inno Setup 6 script (Spanish); builds
+  `dist/WinGet_Expert_Instalador.exe` from the portable exe:
+  `& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" instalador.iss`
+  (ISCC lives in %LOCALAPPDATA%\Programs\Inno Setup 6 on this machine)
 
 ## WinGet parser (most bug-prone area)
 
@@ -90,7 +109,8 @@ $env:QT_QPA_PLATFORM='offscreen'; python -c "..."   # smoke: build MainWindow/di
 - `findChildren()` returns hidden widgets too — filter `isVisible()` when
   driving dialogs from tests (a closed dialog stays parented until deleted).
 - Offscreen font rendering is broken (glyph boxes); take README screenshots
-  with a native-platform process instead (`docs/screenshots/`, real data).
+  with a native-platform process instead (`tools/actualizar_imagenes_readme.py`,
+  real data, regenerates banner + `docs/screenshots/`).
 
 ## Shell notes (PowerShell 5.1)
 
@@ -105,14 +125,17 @@ $env:QT_QPA_PLATFORM='offscreen'; python -c "..."   # smoke: build MainWindow/di
 
 - `pyinstaller winget_gui.spec` (takes minutes). `upx=False` is intentional —
   UPX corrupts Qt DLLs. `icon='assets/icon.ico'`; regenerate via
-  `python create_icon.py` (needs Pillow, dev-only).
+  `python create_icon.py` (needs PySide6 + Pillow, dev-only, native platform).
+- The exe is named `dist/WinGet_Expert.exe` (spec `name=`); renaming it
+  means updating `instalador.iss`, README links and this file.
 - Font Awesome (`assets/fonts/fa-solid-900.ttf`, CC BY 4.0 — keep the About
   attribution) loads at startup in `main.py`; works frozen via `sys._MEIPASS`.
 - Don't commit `build/`, `dist/`, `__pycache__/` (see `.gitignore`).
-- Exception: the release exe `dist/WinGet_GUI_Manager_Pro.exe` is tracked via
-  `git add -f` on purpose (README links it); rebuilds need the same flag.
-  Kill running exe instances first — Windows locks the file and the build
-  fails with `PermissionError`.
+- Exception: the release binaries `dist/WinGet_Expert.exe` and
+  `dist/WinGet_Expert_Instalador.exe` are tracked via `git add -f` on
+  purpose (README links them); rebuilds need the same flag. Kill running
+  exe instances first — Windows locks the file and the build fails with
+  `PermissionError`.
 - Frozen-exe crash with no output: check Event Viewer → Application, Error 1000
   (`Qt6Core.dll`); then build a `--console --name WinGet_Debug` variant to see
   the traceback (delete its `.spec`/exe/`build/` afterwards).

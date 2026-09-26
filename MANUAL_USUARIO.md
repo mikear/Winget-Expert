@@ -1,4 +1,4 @@
-# WinGet GUI Manager Pro - Manual de Usuario
+# WinGet Expert - Manual de Usuario
 
 ## 📖 **Tabla de Contenidos**
 
@@ -18,16 +18,15 @@
 
 ## 🚀 **Introducción**
 
-**WinGet GUI Manager Pro** es una interfaz gráfica profesional para Windows Package Manager (WinGet) que facilita la gestión de paquetes y aplicaciones en Windows.
+**WinGet Expert** es una interfaz gráfica profesional para Windows Package Manager (WinGet) que facilita la gestión de paquetes y aplicaciones en Windows.
 
 ### **Características Principales:**
 - ✅ Gestión completa de paquetes (instalar, actualizar, desinstalar)
 - ✅ Búsqueda y filtrado avanzado
-- ✅ Backup y restauración de configuración
+- ✅ Copias de seguridad y restauración
 - ✅ Gestión de fuentes de paquetes
-- ✅ Control de versiones con historial
-- ✅ Actualizaciones programadas
-- ✅ Pin/Unpin de paquetes críticos
+- ✅ Historial de acciones por paquete
+- ✅ Pines reales de WinGet (bloquear actualizaciones)
 - ✅ Exportación en múltiples formatos
 
 ---
@@ -51,12 +50,17 @@
 
 ## 📦 **Instalación**
 
-### **Opción 1: Ejecutable Portable**
-1. Descarga `WinGet_GUI_Manager_Pro.exe`
-2. Colócalo en cualquier carpeta
-3. Doble clic para ejecutar
+### **Opción 1: Instalador (recomendado)**
+1. Descarga `WinGet_Expert_Instalador.exe`
+2. Doble clic y sigue el asistente (en español)
+3. Crea accesos directos y entrada en "Aplicaciones instaladas"
 
-### **Opción 2: Desde Código Fuente**
+### **Opción 2: Ejecutable Portable**
+1. Descarga `WinGet_Expert.exe`
+2. Colócalo en cualquier carpeta
+3. Doble clic para ejecutar (sin instalación)
+
+### **Opción 3: Desde Código Fuente**
 1. Asegúrate de tener Python 3.8+ y PySide6
 2. Clona el repositorio
 3. Ejecuta `pip install -r requirements.txt`
@@ -75,18 +79,20 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ WinGet GUI Manager Pro - ☰ □ ✕                            │
+│ WinGet Expert - ☰ □ ✕                                      │
 ├─────────────────────────────────────────────────────────────┤
 │ Menú: Archivo | Editar | Ver | Herramientas | Ayuda        │
+├─────────────────────────────────────────────────────────────┤
+│ [Refrescar] [Actualizaciones] | [Instalar] [Detalles]      │
+│ [Desinstalar] [Actualizar Sel.] [Actualizar Todo]          │
+│ [Copia seg.] [Restaurar] [Exportar] | [Opciones]           │
 ├─────────────────────────────────────────────────────────────┤
 │ Paquetes Instalados                          Total: 34      │
 ├─────────────────────────────────────────────────────────────┤
 │ Buscar: [               ] Fuente: [Todas ▼] ☐ Solo ↑  ☐ Sistema │
+│ Vista: [Tabla ▼] Agrupar: [Fuente ▼]              ☐ Silencioso │
 ├─────────────────────────────────────────────────────────────┤
 │ [Tabla de Paquetes con información completa]              │
-├─────────────────────────────────────────────────────────────┤
-│ [🔄Refrescar] [⬆️↑] [⚡Sel] [🚀Todo]                  │
-│ [📦Instalar] [🗑️Desinst] [ℹ️Det] [💾Backup] [♻️Rest] [⚙️] │
 ├─────────────────────────────────────────────────────────────┤
 │ Listo                                                    │
 └─────────────────────────────────────────────────────────────┘
@@ -98,8 +104,8 @@
 - **Versión Instalada:** Versión actual en el sistema
 - **Versión Disponible:** Última versión disponible
 - **Origen:** Fuente del paquete (winget, msstore, etc.)
-- **Estado:** Actualizado, Actualizable o Pinned
-- **Acciones:** Botón 📌 para pin/unpin
+- **Estado:** Actualizado, Actualizable o Fijado
+- **Acciones:** Menú contextual (clic derecho) para fijar/copiar ID
 
 ---
 
@@ -121,51 +127,47 @@
 - **Incluir sistema:** Muestra/oculta paquetes del sistema
 
 ### **4. Actualizar Paquetes**
-- **Individual:** Selecciona un paquete y haz clic en **⚡ Actualizar Sel.**
-- **Masivo:** Usa **🚀 Actualizar Todo** para todos los actualizables
-- **Bloquear:** Usa 📌 para pin un paquete y evitar actualizaciones
+- **Individual:** Selecciona un paquete y haz clic en **Actualizar Sel.**
+- **Masivo:** Usa **Actualizar Todo** para todos los actualizables
+- **Bloquear:** Usa **Fijar** (clic derecho) para que un paquete no se actualice
 
 ---
 
 ## 🚀 **Funciones Avanzadas**
 
 ### **1. Instalar Nuevos Paquetes**
-1. Haz clic en **📦 Instalar Nuevo**
+1. Haz clic en **Instalar**
 2. Ingresa el término de búsqueda
-3. Selecciona la fuente si es necesario
-4. Haz clic en **Instalar** junto al paquete deseado
+3. Haz clic en **Instalar** junto al paquete deseado
 
 ### **2. Desinstalar Paquetes**
 1. Selecciona el paquete en la tabla
-2. Haz clic en **🗑️ Desinstalar**
+2. Haz clic en **Desinstalar**
 3. Confirma la acción
-4. Espera a que complete el proceso
+4. Sigue el log en vivo hasta que complete
 
 ### **3. Ver Detalles del Paquete**
-1. Selecciona un paquete
-2. Haz clic en **ℹ️ Detalles**
-3. Revisa información completa:
+1. Haz doble clic en un paquete (o botón **Detalles**)
+2. Revisa información completa:
    - Versión y fuentes
-   - Historial de actualizaciones
-   - Dependencias
-   - Tamaño y descripción
+   - Historial de acciones
+   - Descripción y datos del catálogo
 
-### **4. Backup y Restauración**
-**Crear Backup:**
-- Haz clic en **💾 Backup**
+### **4. Copias de Seguridad y Restauración**
+**Crear copia de seguridad:**
+- Haz clic en **Copia seg.**
 - Guarda el archivo JSON generado
-- Incluye toda tu configuración
+- Incluye todos tus paquetes instalados
 
-**Restaurar Backup:**
-- Haz clic en **♻️ Restaurar**
-- Selecciona tu archivo de backup
+**Restaurar copia de seguridad:**
+- Haz clic en **Restaurar**
+- Selecciona tu archivo de copia de seguridad
 - Elige los paquetes a restaurar
 
 ### **5. Gestión de Fuentes**
-1. Ve a **⚙️ Opciones → 📚 Gestionar Fuentes**
+1. Ve a **Opciones → Gestionar Fuentes**
 2. Agrega fuentes personalizadas con nombre y URL
 3. Elimina fuentes no deseadas
-4. Verifica disponibilidad de paquetes
 
 ### **6. Exportación de Datos**
 - **CSV:** Importar a Excel o analizar datos
@@ -174,38 +176,25 @@
 
 ---
 
-## 📊 **Control de Versiones**
+## 📊 **Historial de Acciones**
 
-### **Historial de Versiones**
-Cada paquete mantiene un registro completo de:
-- Fecha de instalación
-- Versiones anteriores
-- Fechas de actualización
-- Tipo de cambios (major, minor, patch)
+### **Registro por Paquete**
+Cada paquete mantiene un historial de las acciones hechas desde la aplicación:
+- Fecha de instalación (registro de Windows)
+- Instalaciones y actualizaciones (con versión)
+- Desinstalaciones
 
-### **Información de Actualizaciones**
-Para cada actualización disponible:
-- **Tipo de actualización:** Major, Minor o Patch
-- **Días desde última actualización**
-- **Historial reciente de versiones**
-- **Impacto potencial del cambio**
-
-### **Actualizaciones Programadas**
-Configura actualizaciones automáticas:
-1. **Frecuencia:** Diaria, Semanal o Mensual
-2. **Hora específica:** Personalizable
-3. **Opciones:**
-   - Excluir paquetes del sistema
-   - Notificación previa
-   - Backup automático
+### **Dónde Verlo**
+- Doble clic en un paquete → pestaña **Historial**
+- Columnas **Instalado** y **Actualizado** de la tabla
 
 ---
 
 ## 📋 **Menú de Aplicación**
 
 ### **Archivo (Alt+F)**
-- **Nuevo Backup (Ctrl+N):** Crea backup inmediato
-- **Abrir Backup (Ctrl+O):** Restaura desde archivo
+- **Nueva copia de seguridad (Ctrl+N):** Crea copia inmediata
+- **Abrir copia de seguridad (Ctrl+O):** Restaura desde archivo
 - **Exportar Lista (Ctrl+E):** Exporta paquetes actuales
 - **Salir (Ctrl+Q):** Cierra la aplicación
 
@@ -225,8 +214,7 @@ Configura actualizaciones automáticas:
 
 ### **Ayuda (Alt+H)**
 - **Manual de Usuario (F1):** Abre este manual
-- **Buscar Actualizaciones de la App:** Verifica versiones
-- **Acerca de:** Información del programa y autor
+- **Acerca de...:** Información del programa y autor
 
 ---
 
@@ -234,12 +222,12 @@ Configura actualizaciones automáticas:
 
 | Acción | Atajo | Descripción |
 |--------|--------|-------------|
-| Nuevo Backup | Ctrl+N | Crea backup de paquetes |
-| Abrir Backup | Ctrl+O | Restaura desde backup |
+| Nueva copia de seguridad | Ctrl+N | Crea copia de paquetes |
+| Abrir copia de seguridad | Ctrl+O | Restaura desde copia |
 | Exportar Lista | Ctrl+E | Exporta paquetes actuales |
 | Instalar Paquete | Ctrl+I | Busca e instala |
 | Buscar Actualizaciones | Ctrl+U | Escanea actualizaciones |
-| Seleccionar Todo | Ctrl+A | Selecciona todos |
+| Buscar en la lista | Ctrl+F | Enfoca el buscador |
 | Refrescar | F5 | Actualiza lista |
 | Manual de Usuario | F1 | Abre ayuda |
 | Salir | Ctrl+Q | Cierra aplicación |
@@ -314,7 +302,6 @@ Configura actualizaciones automáticas:
 ### **Soporte Técnico**
 - **Documentación:** Manual integrado (F1)
 - **Comunidad:** GitHub Issues
-- **Actualizaciones:** Verificar en "Ayuda → Buscar Actualizaciones"
 
 ### **Reportar Problemas**
 Para reportar errores, incluye:
@@ -335,7 +322,7 @@ Para reportar errores, incluye:
 
 ## 📄 **Licencia**
 
-**WinGet GUI Manager Pro** está licenciado bajo MIT License.
+**WinGet Expert** está licenciado bajo MIT License.
 
 Copyright © 2025 Diego A. Rábalo - Todos los derechos reservados.
 
@@ -354,11 +341,11 @@ Copyright © 2025 Diego A. Rábalo - Todos los derechos reservados.
 ### **v1.0**
 - ✅ Funcionalidad básica
 - ✅ Instalación/Desinstalación
-- ✅ Backup y Restauración
+- ✅ Copias de seguridad y restauración
 - ✅ Exportación básica
 
 ---
 
-**Gracias por usar WinGet GUI Manager Pro!** 🎉
+**Gracias por usar WinGet Expert!** 🎉
 
 Esta aplicación fue desarrollada para facilitar la gestión de paquetes Windows y mejorar tu productividad.

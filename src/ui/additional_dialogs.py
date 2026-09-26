@@ -1,11 +1,12 @@
 """
 Diálogos adicionales: configuración de filtros y manual de usuario.
 """
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QCheckBox, QDialog, QDialogButtonBox, QGroupBox, QLabel, QVBoxLayout,
+    QCheckBox, QDialog, QGroupBox, QLabel, QVBoxLayout,
     QTabWidget, QTextEdit,
 )
+
+from src.ui import mensajes
 
 
 class FilterSettingsDialog(QDialog):
@@ -37,8 +38,7 @@ class FilterSettingsDialog(QDialog):
         update_layout.addWidget(self.auto_check_checkbox)
         layout.addWidget(update_group)
 
-        button_box = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        button_box = mensajes.botonera_aceptar_cancelar()
         button_box.accepted.connect(self.accept)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
@@ -55,7 +55,7 @@ class UserManualDialog(QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Manual de Usuario - WinGet GUI Manager Pro")
+        self.setWindowTitle("Manual de Usuario - WinGet Expert")
         self.resize(900, 680)
         self.init_ui()
 
@@ -66,9 +66,9 @@ class UserManualDialog(QDialog):
 
         intro_tab = QTextEdit()
         intro_tab.setHtml("""
-        <h2>Bienvenido a WinGet GUI Manager Pro</h2>
+        <h2>Bienvenido a WinGet Expert</h2>
 
-        <h3>¿Qué es WinGet GUI Manager Pro?</h3>
+        <h3>¿Qué es WinGet Expert?</h3>
         <p>Es una interfaz gráfica para Windows Package Manager (WinGet) que facilita
         la gestión de paquetes y aplicaciones en Windows.</p>
 
@@ -76,7 +76,7 @@ class UserManualDialog(QDialog):
         <ul>
         <li><b>Gestión Completa:</b> Instalar, actualizar, desinstalar paquetes</li>
         <li><b>Búsqueda Avanzada:</b> Filtros por nombre, fuente, estado</li>
-        <li><b>Backup y Restauración:</b> Guarda y restaura tus aplicaciones</li>
+        <li><b>Copias de seguridad:</b> Guarda y restaura tus aplicaciones</li>
         <li><b>Gestión de Fuentes:</b> Administra repositorios de paquetes</li>
         <li><b>Pines reales de WinGet:</b> Bloquea actualizaciones de paquetes específicos</li>
         <li><b>Historial de acciones:</b> Registro de instalaciones y actualizaciones</li>
@@ -184,10 +184,10 @@ class UserManualDialog(QDialog):
         advanced_tab.setHtml("""
         <h2>Funciones Avanzadas</h2>
 
-        <h3>1. Backup y Restauración</h3>
+        <h3>1. Copias de seguridad y restauración</h3>
         <ul>
-        <li><b>Crear Backup:</b> "Backup" guarda un JSON con todos tus paquetes</li>
-        <li><b>Restaurar:</b> "Restaurar" reinstala los paquetes del backup que elijas,
+        <li><b>Crear copia de seguridad:</b> "Copia seg." guarda un JSON con todos tus paquetes</li>
+        <li><b>Restaurar:</b> "Restaurar" reinstala los paquetes de la copia de seguridad que elijas,
         con un resumen de éxitos y fallos al final</li>
         </ul>
 
@@ -227,8 +227,8 @@ class UserManualDialog(QDialog):
 
         <table border="1" cellpadding="5" cellspacing="0">
         <tr><th><b>Acción</b></th><th><b>Atajo</b></th></tr>
-        <tr><td>Nuevo Backup</td><td>Ctrl + N</td></tr>
-        <tr><td>Abrir Backup</td><td>Ctrl + O</td></tr>
+        <tr><td>Nueva copia de seguridad</td><td>Ctrl + N</td></tr>
+        <tr><td>Abrir copia de seguridad</td><td>Ctrl + O</td></tr>
         <tr><td>Exportar Lista</td><td>Ctrl + E</td></tr>
         <tr><td>Instalar Paquete</td><td>Ctrl + I</td></tr>
         <tr><td>Buscar Actualizaciones</td><td>Ctrl + U</td></tr>
@@ -285,6 +285,6 @@ class UserManualDialog(QDialog):
 
         layout.addWidget(tab_widget)
 
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        button_box = mensajes.botonera_cerrar()
         button_box.rejected.connect(self.accept)
         layout.addWidget(button_box)

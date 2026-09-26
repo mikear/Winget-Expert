@@ -1,54 +1,46 @@
-# WinGet GUI Manager Pro - Ejecutable
+# WinGet Expert — Binarios
 
-## 📦 **¡Ejecutable Creado Exitosamente!**
+## Binarios disponibles (carpeta `dist/`)
 
-### **Ubicación:**
+| Archivo | Tipo | Descripción |
+|---|---|---|
+| `WinGet_Expert.exe` | Portable | Archivo único, no requiere Python ni instalación |
+| `WinGet_Expert_Instalador.exe` | Instalador | Asistente en español (Inno Setup): accesos directos, menú Inicio y desinstalador |
+
+Ambos se generan con el mismo icono y diseño del splash, y están
+disponibles para descarga en el [README](README.md).
+
+## Cómo regenerarlos
+
+```powershell
+# Portable (PyInstaller; tarda varios minutos)
+pip install pyinstaller
+pyinstaller winget_gui.spec
+# → dist\WinGet_Expert.exe
+
+# Instalador (Inno Setup 6)
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" instalador.iss
+# → dist\WinGet_Expert_Instalador.exe
 ```
-C:\Users\diego\Downloads\winget expert\dist\WinGet_GUI_Manager_Pro.exe
-```
 
-### **Características del Ejecutable:**
-- **Tamaño:** ~46 MB
-- **Independiente:** No requiere instalación de Python
-- **Con Icono:** Personalizado para la aplicación
-- **Sin Consola:** Solo interfaz gráfica
-- **Sin UPX:** `upx=False` en `winget_gui.spec` (UPX corrompe las DLLs de Qt)
+Notas importantes (ver `AGENTS.md`):
+- `upx=False` a propósito: UPX corrompe las DLLs de Qt.
+- Cierra cualquier instancia en ejecución antes de compilar: Windows
+  bloquea el exe y la build falla con `PermissionError`.
+- El icono se regenera con `python create_icon.py` (PySide6 + Pillow,
+  solo desarrollo) a partir del diseño compartido en `src/ui/app_icon.py`.
 
-### **Cómo Usar:**
-1. **Copia el archivo** a cualquier carpeta
-2. **Doble clic** para ejecutar
-3. **No requiere** Python instalado
-4. **Funciona offline** (solo necesita WinGet y conexión)
+## Características de los binarios
 
-### **Distribución:**
-- **Archivo único:** Todo incluido
-- **Portable:** Se puede mover entre equipos
-- **Instalador opcional:** Puede crear un instalador NSIS si lo necesitas
+- **Tamaño:** ~45 MB (portable) / ~47 MB (instalador)
+- **Independientes:** no requieren Python instalado
+- **Icono propio:** el diseño del splash (caja azul + badge de descarga)
+- **Sin consola:** solo interfaz gráfica
+- **Idioma:** interfaz y asistente de instalación íntegramente en español
 
-### **Requisitos del Sistema:**
+## Requisitos del sistema
+
 - Windows 10/11 (64-bit)
-- WinGet CLI instalado
-- 100 MB espacio libre
-- Conexión a internet (para instalar paquetes)
-
-## 🚀 **Lista de Distribución Sugerida:**
-
-**Para usuarios finales:**
-1. Copiar `WinGet_GUI_Manager_Pro.exe` a la carpeta deseada
-2. Crear acceso directo en el escritorio
-3. Listo para usar
-
-**Para distribuir:**
-1. Comprimir el `.exe` en un ZIP
-2. Incluir archivo `README.md`
-3. Agregar instrucciones básicas
-
-## ✅ **Verificación Completada:**
-- [x] Ejecutable creado
-- [x] Icono personalizado
-- [x] Metadatos configurados  
-- [x] Tamaño optimizado
-- [x] Funciona sin Python
-- [x] Interfaz gráfica funcional
-
-¡La aplicación está lista para distribuir!
+- WinGet CLI instalado (viene con Windows 11 y "Instalador de aplicación")
+- ~100 MB de espacio libre
+- Conexión a internet (para instalar/actualizar paquetes)

@@ -23,14 +23,22 @@ actualiza y desinstala aplicaciones de Windows sin tocar la terminal.
 - **Modo silencioso** (`--silent`) conmutable y persistente.
 - **Log en vivo** de cada operación larga, con botón **Cancelar**.
 - **Pines reales de WinGet** (bloquean actualizaciones incluso por CLI).
-- **Backup y restauración** en JSON, exportación a **CSV/JSON/TXT**.
+- **Copias de seguridad** en JSON, restauración asistida y exportación a **CSV/JSON/TXT**.
 - **Gestión de fuentes** de paquetes y limpieza de temporales.
-- Tema claro/oscuro, filtros, manual integrado (F1) y atajos de teclado.
+- Interfaz **íntegramente en español**, tema claro/oscuro, filtros,
+  manual integrado (F1) y atajos de teclado.
 
 ## Descarga
 
-**[WinGet_GUI_Manager_Pro.exe](https://github.com/mikear/Winget-Expert/raw/main/dist/WinGet_GUI_Manager_Pro.exe)**
-(~45 MB, portable: no requiere Python, doble clic y listo.)
+Dos formas de instalar, elige la que prefieras:
+
+- **Instalador** (recomendado):
+  **[WinGet_Expert_Instalador.exe](https://github.com/mikear/Winget-Expert/raw/main/dist/WinGet_Expert_Instalador.exe)**
+  (~47 MB, asistente en español: accesos directos, menú Inicio y
+  desinstalación desde "Aplicaciones instaladas").
+- **Portable**:
+  **[WinGet_Expert.exe](https://github.com/mikear/Winget-Expert/raw/main/dist/WinGet_Expert.exe)**
+  (~45 MB, sin instalación: no requiere Python, doble clic y listo).
 
 ## Requisitos
 
@@ -46,18 +54,22 @@ pip install -r requirements.txt
 python main.py
 ```
 
-### Generar el ejecutable portable
+### Generar los binarios (portable e instalador)
 
 ```powershell
-pip install pyinstaller pillow
+pip install pyinstaller
 pyinstaller winget_gui.spec
-# → dist\WinGet_GUI_Manager_Pro.exe (no requiere Python)
+# → dist\WinGet_Expert.exe (portable, no requiere Python)
+
+# Instalador (requiere Inno Setup 6):
+& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" instalador.iss
+# → dist\WinGet_Expert_Instalador.exe
 ```
 
 ## Estructura
 
 ```
-main.py                  # entrada: QApplication, tema, icono, ventana
+main.py                  # entrada: QApplication, tema, icono, splash
 src/core/winget_client.py  # wrapper de winget CLI + parser de tablas
 src/core/install_dates.py  # fechas desde registro/Appx (solo lectura)
 src/core/models.py         # dataclass Package
@@ -65,9 +77,14 @@ src/core/settings.py       # config en %APPDATA%\WinGet GUI Manager
 src/ui/main_window.py      # ventana principal (tabla + árbol)
 src/ui/dialogs.py          # instalar, detalles, restaurar, operación con log
 src/ui/additional_dialogs.py  # filtros, manual de usuario
+src/ui/splash.py           # splash de arranque (diseño del banner)
+src/ui/app_icon.py         # icono de la app (mismo diseño que el splash)
+src/ui/mensajes.py         # diálogos con botones en español
 src/ui/theme.py            # temas claro/oscuro
 assets/                  # icono + fuente Font Awesome (CC BY 4.0)
 docs/                    # banner y capturas
+tools/                   # script de regeneración de imágenes del README
+instalador.iss           # script Inno Setup del instalador
 ```
 
 ## Notas

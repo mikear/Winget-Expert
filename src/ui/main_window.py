@@ -1,5 +1,5 @@
 """
-Ventana principal de la aplicación WinGet GUI Manager
+Ventana principal de la aplicación WinGet Expert
 """
 import webbrowser
 from datetime import datetime
@@ -9,7 +9,7 @@ from PySide6.QtCore import QSize
 from PySide6.QtGui import QAction, QColor, QGuiApplication
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QFileDialog, QHBoxLayout, QHeaderView, QLineEdit, QMenu,
-    QMessageBox, QProgressBar, QStatusBar, QTableWidget,
+    QProgressBar, QStatusBar, QTableWidget,
     QTableWidgetItem, QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
     QMainWindow, QCheckBox, QLabel,
 )
@@ -18,7 +18,8 @@ from src.core import install_dates
 from src.core.settings import AppSettings
 from src.core.winget_client import WinGetClient
 from src.core.models import Package
-from src.ui import icons
+from src.ui import icons, mensajes
+from src.ui.app_icon import icono_aplicacion
 from src.ui.dialogs import (
     InstallDialog, OperationDialog, PackageDetailsDialog, RestoreDialog,
     SourcesDialog, StreamWorker, WinGetMissingDialog,
@@ -52,7 +53,7 @@ class WorkerThread(QThread):
 
 
 class MainWindow(QMainWindow):
-    """Ventana principal de WinGet GUI Manager Pro"""
+    """Ventana principal de WinGet Expert"""
 
     def __init__(self, app, splash=None):
         super().__init__()
@@ -69,6 +70,7 @@ class MainWindow(QMainWindow):
         self._installed_sources = set()
         self._splash = splash
 
+        self.setWindowIcon(icono_aplicacion())
         self.init_ui()
         self.restore_geometry()
 
@@ -150,7 +152,7 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------ #
 
     def init_ui(self):
-        self.setWindowTitle("WinGet GUI Manager Pro")
+        self.setWindowTitle("WinGet Expert")
         self.setMinimumSize(900, 600)
 
         self.create_menu_bar()
@@ -279,7 +281,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.tree)
 
         # Barra de herramientas única con grupos lógicos:
-        #  [carga/vista]  [paquete]  [actualizaciones]  [backup]  [opciones]
+        #  [carga/vista]  [paquete]  [actualizaciones]  [copia seg.]  [opciones]
         toolbar = QToolBar("Principal")
         toolbar.setMovable(False)
         toolbar.setFloatable(False)
@@ -316,8 +318,10 @@ class MainWindow(QMainWindow):
 
         toolbar.addSeparator()
 
-        self.backup_action = toolbar.addAction(icons.icon(icons.BACKUP), "Backup")
+        self.backup_action = toolbar.addAction(icons.icon(icons.BACKUP), "Copia seg.")
         self.backup_action.setShortcut("Ctrl+N")
+        self.backup_action.setToolTip(
+            "Crear copia de seguridad de la lista de paquetes (JSON)")
         self.backup_action.triggered.connect(self.create_backup)
 
         self.restore_action = toolbar.addAction(icons.icon(icons.RESTORE), "Restaurar")
@@ -345,11 +349,11 @@ class MainWindow(QMainWindow):
         # Menú Archivo
         file_menu = menubar.addMenu("Archivo")
 
-        new_action = file_menu.addAction("Nuevo Backup")
+        new_action = file_menu.addAction("Nueva copia de seguridad")
         new_action.setShortcut("Ctrl+N")
         new_action.triggered.connect(self.create_backup)
 
-        open_action = file_menu.addAction("Abrir Backup")
+        open_action = file_menu.addAction("Abrir copia de seguridad")
         open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self.restore_backup)
 
@@ -440,8 +444,8 @@ class MainWindow(QMainWindow):
     def _start_worker(self, func, *args, on_finished, timeout_msg=None):
         """Lanza una operación en background con guardas de concurrencia."""
         if self._busy:
-            QMessageBox.information(self, "Operación en curso",
-                                    "Espera a que termine la operación actual.")
+            mensajes.informar(self, "Operación en curso",
+                              "Espera a que termine la operación actual.")
             return False
         self._busy = True
         self.set_loading(True)
@@ -651,6 +655,8 @@ class MainWindow(QMainWindow):
             self.tree.addTopLevelItem(group_item)
 
         self.tree.setSortingEnabled(sorting)
+        # Reordenar colapsa los grupos: volver a expandirlos siempre
+        self.tree.expandAll()
 
     def on_selection_changed(self, *_):
         self.update_action_buttons()
@@ -799,7 +805,7 @@ class MainWindow(QMainWindow):
         # Los IDs locales (MSIX\..., ARP\...) no están en el catálogo:
         # winget pin los rechaza, se informa sin llamar a winget.
         if pkg.id.upper().startswith(('MSIX\\', 'ARP\\')):
-            QMessageBox.information(
+            mensajes.informar(
                 self, "Fijar paquete",
                 f"{pkg.name} no se puede fijar porque no está en el catálogo "
                 "de WinGet (es una aplicación del sistema o de Microsoft Store).")
@@ -823,7 +829,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(message, 5000)
             self.apply_filters()
         else:
-            QMessageBox.warning(self, "Error", message)
+            mensajes.advertir(self, "Error", message)
 
     # ------------------------------------------------------------------ #
     # Instalar / Desinstalar / Actualizar
@@ -839,12 +845,9 @@ class MainWindow(QMainWindow):
         if pkg is None:
             return
 
-        reply = QMessageBox.question(
-            self, "Confirmar desinstalación",
-            f"¿Desinstalar {pkg.name} ({pkg.id})?\n\nEsta acción eliminará la aplicación.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        if not mensajes.pregunta(
+                self, "Confirmar desinstalación",
+                f"¿Desinstalar {pkg.name} ({pkg.id})?\n\nEsta acción eliminará la aplicación."):
             return
 
         result = self._run_operation(
@@ -863,7 +866,7 @@ class MainWindow(QMainWindow):
         elif 'cancelada' in message.lower():
             self.statusBar().showMessage(message, 5000)
         else:
-            QMessageBox.warning(self, "Error", message)
+            mensajes.advertir(self, "Error", message)
 
     def show_package_details(self):
         pkg = self.current_package()
@@ -877,7 +880,7 @@ class MainWindow(QMainWindow):
         self._finish_worker()
         info, error = info_result
         if error:
-            QMessageBox.warning(self, "Error", f"No se pudo obtener información: {error}")
+            mensajes.advertir(self, "Error", f"No se pudo obtener información: {error}")
             return
         dialog = PackageDetailsDialog(pkg, info, self.settings.history_for(pkg.id), self)
         dialog.exec()
@@ -887,15 +890,13 @@ class MainWindow(QMainWindow):
         if pkg is None:
             return
         if not pkg.has_update:
-            QMessageBox.information(self, "Info", "Este paquete no tiene actualizaciones disponibles")
+            mensajes.informar(self, "Información",
+                              "Este paquete no tiene actualizaciones disponibles")
             return
 
-        reply = QMessageBox.question(
-            self, "Confirmar actualización",
-            f"¿Actualizar {pkg.name} ({pkg.version} → {pkg.available_version})?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        if not mensajes.pregunta(
+                self, "Confirmar actualización",
+                f"¿Actualizar {pkg.name} ({pkg.version} → {pkg.available_version})?"):
             return
 
         result = self._run_operation(
@@ -915,24 +916,21 @@ class MainWindow(QMainWindow):
         elif 'cancelada' in message.lower():
             self.statusBar().showMessage(message, 5000)
         else:
-            QMessageBox.warning(self, "Error", message)
+            mensajes.advertir(self, "Error", message)
 
     def upgrade_all(self):
         # Usar todos los paquetes, no solo los visibles: el filtro de
         # búsqueda/fuente no debe dejar fuera actualizaciones pendientes.
         upgradable = [p for p in self.packages if p.has_update and not p.pinned]
         if not upgradable:
-            QMessageBox.information(self, "Info", "No hay actualizaciones disponibles")
+            mensajes.informar(self, "Información", "No hay actualizaciones disponibles")
             return
 
-        reply = QMessageBox.question(
-            self, "Confirmar actualización masiva",
-            f"¿Actualizar {len(upgradable)} paquetes?\n\n"
-            f"Los paquetes fijados ({sum(1 for p in self.packages if p.pinned)}) "
-            f"no se tocarán.\nEsta operación puede tardar varios minutos.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        if not mensajes.pregunta(
+                self, "Confirmar actualización masiva",
+                f"¿Actualizar {len(upgradable)} paquetes?\n\n"
+                f"Los paquetes fijados ({sum(1 for p in self.packages if p.pinned)}) "
+                f"no se tocarán.\nEsta operación puede tardar varios minutos."):
             return
 
         result = self._run_operation(
@@ -949,7 +947,7 @@ class MainWindow(QMainWindow):
                 self.settings.add_history(pkg.id, pkg.name, 'actualizado',
                                           pkg.available_version or '')
         elif 'cancelada' not in message.lower():
-            QMessageBox.warning(self, "Error", message)
+            mensajes.advertir(self, "Error", message)
         self.statusBar().showMessage(message, 8000)
         self.refresh_packages()
 
@@ -965,16 +963,16 @@ class MainWindow(QMainWindow):
 
     def on_error(self, error_msg: str):
         self._finish_worker()
-        QMessageBox.critical(self, "Error", f"Error: {error_msg}")
+        mensajes.error(self, "Error", f"Error: {error_msg}")
 
     # ------------------------------------------------------------------ #
-    # Backup / Restaurar / Exportar
+    # Copia de seguridad / Restaurar / Exportar
     # ------------------------------------------------------------------ #
 
     def create_backup(self):
         filename, _ = QFileDialog.getSaveFileName(
-            self, "Crear Backup",
-            f"winget_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+            self, "Guardar copia de seguridad",
+            f"copia_seguridad_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
             "Archivos JSON (*.json)",
         )
         if not filename:
@@ -991,13 +989,13 @@ class MainWindow(QMainWindow):
             }
             with open(filename, 'w', encoding='utf-8') as f:
                 json.dump(backup_data, f, indent=2, ensure_ascii=False)
-            self.statusBar().showMessage(f"Backup creado: {filename}", 5000)
+            self.statusBar().showMessage(f"Copia de seguridad creada: {filename}", 5000)
         except OSError as e:
-            QMessageBox.critical(self, "Error", f"Error al crear backup: {e}")
+            mensajes.error(self, "Error", f"Error al crear la copia de seguridad: {e}")
 
     def restore_backup(self):
         filename, _ = QFileDialog.getOpenFileName(
-            self, "Seleccionar Backup", "", "Archivos JSON (*.json)")
+            self, "Abrir copia de seguridad", "", "Archivos JSON (*.json)")
         if not filename:
             return
         import json
@@ -1011,13 +1009,14 @@ class MainWindow(QMainWindow):
             # Filtrar entradas sin ID válido
             packages = [p for p in packages if isinstance(p, dict) and p.get('id')]
             if not packages:
-                QMessageBox.warning(self, "Advertencia", "El backup no contiene paquetes")
+                mensajes.advertir(self, "Advertencia",
+                                  "La copia de seguridad no contiene paquetes")
                 return
             dialog = RestoreDialog(packages, self.client, self.settings, self)
             if dialog.exec():
                 self.refresh_packages()
         except (OSError, json.JSONDecodeError) as e:
-            QMessageBox.critical(self, "Error", f"Error al leer backup: {e}")
+            mensajes.error(self, "Error", f"Error al leer la copia de seguridad: {e}")
 
     def export_package_list(self):
         filename, _ = QFileDialog.getSaveFileName(
@@ -1034,7 +1033,7 @@ class MainWindow(QMainWindow):
                 self._export_txt(filename)
             self.statusBar().showMessage(f"Lista exportada a: {filename}", 5000)
         except OSError as e:
-            QMessageBox.critical(self, "Error", f"Error al exportar: {e}")
+            mensajes.error(self, "Error", f"Error al exportar: {e}")
 
     def _export_csv(self, filename):
         import csv
@@ -1093,13 +1092,10 @@ class MainWindow(QMainWindow):
 
     def clean_temp_files(self):
         """Limpieza segura: solo instaladores temporales de winget en %TEMP%."""
-        reply = QMessageBox.question(
-            self, "Confirmar",
-            "¿Eliminar los archivos temporales de WinGet?\n"
-            "(Solo instaladores descargados en %TEMP%; no toca aplicaciones instaladas)",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if reply == QMessageBox.StandardButton.Yes:
+        if mensajes.pregunta(
+                self, "Confirmar",
+                "¿Eliminar los archivos temporales de WinGet?\n"
+                "(Solo instaladores descargados en %TEMP%; no toca aplicaciones instaladas)"):
             self._start_worker(self.client.clean_temp_files,
                                on_finished=self.on_temp_cleaned)
 
@@ -1109,7 +1105,7 @@ class MainWindow(QMainWindow):
         if success:
             self.statusBar().showMessage(message, 5000)
         else:
-            QMessageBox.warning(self, "Error", message)
+            mensajes.advertir(self, "Error", message)
 
     def show_filter_settings(self):
         dialog = FilterSettingsDialog(self.settings, self)
@@ -1122,15 +1118,16 @@ class MainWindow(QMainWindow):
         dialog.exec()
 
     def show_about(self):
-        QMessageBox.about(
-            self, "Acerca de WinGet GUI Manager Pro",
-            "<h2>WinGet GUI Manager Pro</h2>"
+        mensajes.acerca_de(
+            self, "Acerca de WinGet Expert",
+            "<h2>WinGet Expert</h2>"
             "<p><b>Versión:</b> 3.0</p>"
             "<p>Interfaz gráfica para Windows Package Manager (WinGet) que facilita "
             "la gestión de paquetes y aplicaciones en Windows.</p>"
             "<p><b>Características:</b> instalar, actualizar y desinstalar paquetes; "
-            "pines reales de winget; backup y restauración; historial de acciones; "
-            "gestión de fuentes; exportación en CSV/JSON/TXT; tema claro/oscuro.</p>"
+            "pines reales de winget; copias de seguridad y restauración; "
+            "historial de acciones; gestión de fuentes; exportación en CSV/JSON/TXT; "
+            "tema claro/oscuro.</p>"
             "<p>Requiere Windows 10/11 con WinGet CLI.</p>"
             "<hr>"
             "<p><b>Desarrollado por Diego A. Rábalo</b><br>"

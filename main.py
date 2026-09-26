@@ -1,13 +1,14 @@
 """
-Punto de entrada de la aplicación WinGet GUI Manager
+Punto de entrada de la aplicación WinGet Expert
 """
 import os
 import sys
 
-from PySide6.QtGui import QFontDatabase, QIcon
+from PySide6.QtGui import QFontDatabase
 from PySide6.QtWidgets import QApplication
 
 from src.core.settings import AppSettings
+from src.ui.app_icon import icono_aplicacion
 from src.ui.main_window import MainWindow
 from src.ui.theme import apply_theme
 
@@ -28,15 +29,14 @@ def _load_icon_font():
 def main():
     """Función principal"""
     app = QApplication(sys.argv)
-    app.setApplicationName("WinGet GUI Manager Pro")
-    app.setOrganizationName("WinGet GUI Manager")
+    app.setApplicationName("WinGet Expert")
+    app.setOrganizationName("WinGet Expert")
 
     _load_icon_font()
 
-    icon_path = _asset_path('assets', 'icon.ico')
-    if os.path.isfile(icon_path):
-        icon = QIcon(icon_path)
-        app.setWindowIcon(icon)
+    icono = icono_aplicacion()
+    if not icono.isNull():
+        app.setWindowIcon(icono)
 
     settings = AppSettings()
     apply_theme(app, settings.theme == 'dark')

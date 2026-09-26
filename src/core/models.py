@@ -1,5 +1,5 @@
 """
-Modelos de datos para WinGet GUI Manager
+Modelos de datos para WinGet Expert
 """
 from dataclasses import dataclass
 from typing import Optional

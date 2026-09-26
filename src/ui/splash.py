@@ -5,12 +5,12 @@ título blanco, subtítulo gris-azulado y franja azul inferior.
 """
 import time
 
-from PySide6.QtCore import QPoint, QPointF, QRect, QRectF, Qt
+from PySide6.QtCore import QPointF, QPoint, QRect, QRectF, Qt
 from PySide6.QtGui import (QBrush, QColor, QFont, QLinearGradient, QPainter,
                            QPainterPath, QPixmap, QRadialGradient)
 from PySide6.QtWidgets import QSplashScreen, QApplication
 
-from src.ui import icons
+from src.ui.app_icon import icono_aplicacion, pintar_icono_app
 
 _WIDTH = 640
 _HEIGHT = 360
@@ -39,6 +39,7 @@ class SplashScreen(QSplashScreen):
         self._message = ''
         self._shown_at = time.monotonic()
         super().__init__(self._pixmap)
+        self.setWindowIcon(icono_aplicacion())
         # Zona de mensajes sobre la franja azul inferior
         self._message_rect = QRect(24, _HEIGHT - 66, _WIDTH - 48, 22)
 
@@ -113,42 +114,8 @@ class SplashScreen(QSplashScreen):
         return pixmap
 
     def _draw_app_icon(self, painter: QPainter, x: int, y: int):
-        """Icono estilo banner: cuadrado redondeado azul con caja blanca y
-        badge verde de descarga (glifos Font Awesome)."""
-        size = 132
-        rect = QRect(x, y, size, size)
-
-        icon_gradient = QLinearGradient(rect.topLeft(), rect.bottomRight())
-        icon_gradient.setColorAt(0.0, QColor(0x1E, 0x88, 0xE5))
-        icon_gradient.setColorAt(1.0, QColor(0x15, 0x65, 0xC0))
-        painter.setPen(Qt.PenStyle.NoPen)
-        painter.setBrush(QBrush(icon_gradient))
-        painter.drawPath(_rounded_rect_path(rect, 26))
-
-        # Caja blanca (FA box-open)
-        family = icons.ensure_loaded()
-        if family:
-            font = QFont(family)
-            font.setPixelSize(64)
-            painter.setFont(font)
-            painter.setPen(QColor(0xFF, 0xFF, 0xFF))
-            painter.drawText(rect.adjusted(0, -8, 0, -8),
-                             Qt.AlignmentFlag.AlignCenter, chr(0xF49E))
-
-        # Badge verde con flecha de descarga (esquina inferior derecha)
-        badge_r = 34
-        badge_center = QPoint(rect.right() - badge_r + 10, rect.bottom() - badge_r + 10)
-        painter.setPen(QColor(0x0A, 0x22, 0x40))
-        painter.setBrush(QColor(0x22, 0xC5, 0x5E))
-        painter.drawEllipse(badge_center, badge_r, badge_r)
-        if family:
-            font = QFont(family)
-            font.setPixelSize(30)
-            painter.setFont(font)
-            painter.setPen(QColor(0xFF, 0xFF, 0xFF))
-            badge_rect = QRect(badge_center.x() - badge_r, badge_center.y() - badge_r,
-                               badge_r * 2, badge_r * 2)
-            painter.drawText(badge_rect, Qt.AlignmentFlag.AlignCenter, chr(0xF019))
+        """Icono de la app (diseño compartido con assets/icon.ico)."""
+        pintar_icono_app(painter, x, y, 132)
 
     def _draw_texts(self, painter: QPainter):
         left = 216

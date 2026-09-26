@@ -7,10 +7,10 @@ from datetime import datetime
 
 from PySide6.QtCore import Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QFont
-from src.ui import icons
+from src.ui import icons, mensajes
 from PySide6.QtWidgets import (
-    QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel,
-    QLineEdit, QListWidget, QMessageBox, QProgressBar, QPushButton,
+    QComboBox, QDialog, QHBoxLayout, QHeaderView, QLabel,
+    QLineEdit, QListWidget, QProgressBar, QPushButton,
     QTableWidget, QTableWidgetItem, QTabWidget, QTextEdit, QVBoxLayout, QWidget,
 )
 
@@ -89,7 +89,7 @@ class InstallDialog(QDialog):
         self.status_label = QLabel("")
         layout.addWidget(self.status_label)
 
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        button_box = mensajes.botonera_cerrar()
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
@@ -114,7 +114,7 @@ class InstallDialog(QDialog):
         packages, error = result
         if error:
             self._set_busy(False)
-            QMessageBox.warning(self, "Error", f"Error en búsqueda: {error}")
+            mensajes.advertir(self, "Error", f"Error en búsqueda: {error}")
             return
         self._set_busy(False, f"{len(packages)} resultados")
         self.search_results = packages
@@ -122,7 +122,7 @@ class InstallDialog(QDialog):
 
     def on_error(self, error_msg):
         self._set_busy(False)
-        QMessageBox.critical(self, "Error", f"Error: {error_msg}")
+        mensajes.error(self, "Error", f"Error: {error_msg}")
 
     def populate_results(self, packages):
         self.results_table.setRowCount(0)
@@ -142,12 +142,9 @@ class InstallDialog(QDialog):
     def install_package(self, package):
         if self._busy:
             return
-        reply = QMessageBox.question(
-            self, "Confirmar instalación",
-            f"¿Instalar {package['name']} v{package['version']}?\n\nID: {package['id']}",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        if not mensajes.pregunta(
+                self, "Confirmar instalación",
+                f"¿Instalar {package['name']} v{package['version']}?\n\nID: {package['id']}"):
             return
 
         self._set_busy(True, f"Instalando {package['name']}...")
@@ -166,7 +163,7 @@ class InstallDialog(QDialog):
             self._set_busy(False, message)
         else:
             self._set_busy(False)
-            QMessageBox.warning(self, "Error", message)
+            mensajes.advertir(self, "Error", message)
 
     def done(self, result):
         # Aceptar el diálogo si se instaló algo, para que la lista principal se refresque
@@ -250,13 +247,13 @@ class PackageDetailsDialog(QDialog):
 
         layout.addWidget(tabs, 1)
 
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        button_box = mensajes.botonera_cerrar()
         button_box.rejected.connect(self.accept)
         layout.addWidget(button_box)
 
 
 class RestoreDialog(QDialog):
-    """Diálogo para restaurar paquetes desde un backup"""
+    """Diálogo para restaurar paquetes desde una copia de seguridad"""
 
     def __init__(self, packages, client, settings, parent=None):
         super().__init__(parent)
@@ -276,7 +273,8 @@ class RestoreDialog(QDialog):
     def init_ui(self):
         layout = QVBoxLayout(self)
 
-        layout.addWidget(QLabel(f"Se encontraron {len(self._packages)} paquetes en el backup."))
+        layout.addWidget(QLabel(
+            f"Se encontraron {len(self._packages)} paquetes en la copia de seguridad."))
 
         self.package_list = QListWidget()
         self.package_list.setSelectionMode(QListWidget.SelectionMode.MultiSelection)
@@ -305,7 +303,7 @@ class RestoreDialog(QDialog):
         button_layout.addStretch()
         layout.addLayout(button_layout)
 
-        dialog_buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        dialog_buttons = mensajes.botonera_cerrar()
         dialog_buttons.rejected.connect(self.accept)
         layout.addWidget(dialog_buttons)
 
@@ -315,22 +313,19 @@ class RestoreDialog(QDialog):
     def restore_packages(self):
         selected = self.package_list.selectedItems()
         if not selected:
-            QMessageBox.warning(self, "Advertencia", "Selecciona paquetes para restaurar")
+            mensajes.advertir(self, "Advertencia", "Selecciona paquetes para restaurar")
             return
 
         self._queue = [i.data(Qt.ItemDataRole.UserRole) for i in selected]
         # Filtrar entradas corruptas (sin id) que no se pueden instalar
         self._queue = [p for p in self._queue if isinstance(p, dict) and p.get('id')]
         if not self._queue:
-            QMessageBox.warning(self, "Advertencia",
-                                "Los elementos seleccionados no contienen IDs válidos")
+            mensajes.advertir(self, "Advertencia",
+                              "Los elementos seleccionados no contienen IDs válidos")
             return
-        reply = QMessageBox.question(
-            self, "Confirmar restauración",
-            f"¿Restaurar {len(self._queue)} paquetes?\n\nEsta operación puede tardar varios minutos.",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        if not mensajes.pregunta(
+                self, "Confirmar restauración",
+                f"¿Restaurar {len(self._queue)} paquetes?\n\nEsta operación puede tardar varios minutos."):
             return
 
         self.results = []
@@ -378,7 +373,7 @@ class RestoreDialog(QDialog):
         if fail:
             lines.append(f"Fallidos: {fail}\n")
             lines.extend(f"- No instalado {name}: {msg}" for name, success, msg in self.results if not success)
-        QMessageBox.information(self, "Restauración completada", "\n".join(lines))
+        mensajes.informar(self, "Restauración completada", "\n".join(lines))
 
 
 class SourcesDialog(QDialog):
@@ -428,7 +423,7 @@ class SourcesDialog(QDialog):
         self.status_label = QLabel("")
         layout.addWidget(self.status_label)
 
-        button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        button_box = mensajes.botonera_cerrar()
         button_box.rejected.connect(self.accept)
         layout.addWidget(button_box)
 
@@ -452,7 +447,7 @@ class SourcesDialog(QDialog):
         sources, error = result
         if error:
             self._set_busy(False)
-            QMessageBox.warning(self, "Error", f"Error cargando fuentes: {error}")
+            mensajes.advertir(self, "Error", f"Error cargando fuentes: {error}")
             return
         self._set_busy(False)
         self.sources = sources
@@ -471,13 +466,13 @@ class SourcesDialog(QDialog):
 
     def on_error(self, error_msg):
         self._set_busy(False)
-        QMessageBox.critical(self, "Error", f"Error: {error_msg}")
+        mensajes.error(self, "Error", f"Error: {error_msg}")
 
     def add_source(self):
         name = self.name_input.text().strip()
         url = self.url_input.text().strip()
         if not name or not url:
-            QMessageBox.warning(self, "Advertencia", "Ingresa nombre y URL")
+            mensajes.advertir(self, "Advertencia", "Ingresa nombre y URL")
             return
         self._set_busy(True, f"Agregando fuente {name}...")
         self._worker = WorkerThread(self.client.add_source, name, url)
@@ -493,15 +488,11 @@ class SourcesDialog(QDialog):
             self.refresh_sources()
         else:
             self._set_busy(False)
-            QMessageBox.warning(self, "Error", message)
+            mensajes.advertir(self, "Error", message)
 
     def remove_source(self, name):
-        reply = QMessageBox.question(
-            self, "Confirmar eliminación",
-            f"¿Eliminar la fuente '{name}'?",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-        )
-        if reply != QMessageBox.StandardButton.Yes:
+        if not mensajes.pregunta(self, "Confirmar eliminación",
+                                 f"¿Eliminar la fuente '{name}'?"):
             return
         self._set_busy(True, f"Eliminando fuente {name}...")
         self._worker = WorkerThread(self.client.remove_source, name)
@@ -515,7 +506,7 @@ class SourcesDialog(QDialog):
             self.refresh_sources()
         else:
             self._set_busy(False)
-            QMessageBox.warning(self, "Error", message)
+            mensajes.advertir(self, "Error", message)
 
 
 class StreamWorker(QThread):
