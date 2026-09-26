@@ -129,60 +129,71 @@ class WinGetClient:
     @staticmethod
     def _table_rows(output: str) -> Tuple[Optional[List[str]], List[List[str]]]:
         """
-        Parsea la tabla de winget: localiza la línea separadora de guiones que
-        sigue al encabezado, deduce el inicio de cada columna desde las
-        posiciones de las etiquetas del encabezado y recorta cada fila por
-        esas posiciones (los valores van alineados a esas posiciones).
+        Parsea las tablas de winget: localiza cada línea separadora de guiones,
+        deduce los inicios de columna de la cabecera que la precede y recorta
+        las filas por esas posiciones (los valores van alineados a ellas).
+
+        `winget upgrade --include-pinned` puede emitir VARIAS tablas seguidas,
+        separadas por texto de resumen (p. ej. "1 paquetes tienen un pin que
+        debe quitarse antes de la actualización", que arranca en la columna 0):
+        en cada separador se vuelve a sincronizar la cabecera, y las líneas de
+        prosa se descartan porque no respetan la alineación de las columnas.
 
         Retorna (encabezados, filas) o (None, []) si no hay tabla.
         """
         lines = output.split('\n')
+        headers: Optional[List[str]] = None
+        header_line = ''
+        spans: List[int] = []
+        rows: List[List[str]] = []
+        last_row_line = -1
+
         for i, line in enumerate(lines):
             stripped = line.strip()
             # Separador: línea de guiones (winget la emite a veces con
-            # espacios intermedios según idioma/ancho de columnas).
-            if i == 0 or len(stripped) < 5 or stripped.strip('- ') != '':
+            # espacios intermedios según idioma/ancho de columnas). Cada
+            # separador abre una nueva tabla con su propia cabecera.
+            if len(stripped) >= 5 and '-' in stripped and stripped.strip('- ') == '':
+                prev = lines[i - 1] if i > 0 else ''
+                new_spans = []
+                for m in re.finditer(r'(?:^| {2,})(\S)', prev):
+                    start = m.start(1)
+                    if not new_spans or start > new_spans[-1]:
+                        new_spans.append(start)
+                if len(new_spans) >= 2:
+                    new_headers = [prev[s:new_spans[j + 1] if j + 1 < len(new_spans) else None].strip()
+                                   for j, s in enumerate(new_spans)]
+                    new_headers, new_spans = WinGetClient._split_merged_headers(
+                        new_headers, new_spans)
+                    # La cabecera de esta tabla pudo entrar como fila al
+                    # procesarse antes que su separador: retirarla
+                    if rows and last_row_line == i - 1:
+                        rows.pop()
+                    headers, header_line, spans = new_headers, prev, new_spans
                 continue
-            if '-' not in stripped:
+            if headers is None or not stripped:
                 continue
-            header_line = lines[i - 1]
-            if not header_line.strip():
+            # Líneas de resumen indentadas: sin alineación con columnas
+            if line[0].isspace():
                 continue
-
-            # Inicios de columna: tokens tras el inicio de línea o 2+ espacios
-            spans = []
-            for m in re.finditer(r'(?:^| {2,})(\S)', header_line):
-                start = m.start(1)
-                if not spans or start > spans[-1]:
-                    spans.append(start)
-            if len(spans) < 2:
+            # Prosa que arranca en la columna 0 ("N paquetes tienen un pin..."):
+            # corta palabras a mitad en los límites de columna; una fila real
+            # deja espacio de relleno justo antes de la columna siguiente.
+            if (len(line) > spans[1] and line[spans[1] - 1] != ' '
+                    and line[spans[1]] != ' '):
                 continue
-
-            headers = [header_line[s:spans[j + 1] if j + 1 < len(spans) else None].strip()
-                       for j, s in enumerate(spans)]
-
-            # winget ajusta el ancho de columnas al contenido: si una columna
-            # queda del ancho exacto de su etiqueta (p. ej. "Disponible" vacío),
-            # el encabezado siguiente queda a UN solo espacio ("Disponible Origen")
-            # y el regex de 2+ espacios lo fusiona en un token. Separa esos
-            # tokens cuando cada parte parece una columna conocida.
-            headers, spans = WinGetClient._split_merged_headers(headers, spans)
-
-            rows = []
-            for data_line in lines[i + 1:]:
-                if not data_line.strip():
-                    continue
-                # Líneas de resumen final (sin alineación con columnas) se descartan
-                # porque su primer valor no arranca en la columna 0
-                if data_line[0].isspace():
-                    continue
-                values = []
-                for j, s in enumerate(spans):
-                    end = spans[j + 1] if j + 1 < len(spans) else len(data_line)
-                    values.append(data_line[s:end].strip())
-                rows.append(values)
-            return headers, rows
-        return None, []
+            # Cabecera repetida (llegó con anchos idénticos)
+            if stripped == header_line.strip():
+                continue
+            values = [line[s:(spans[j + 1] if j + 1 < len(spans) else None)].strip()
+                      for j, s in enumerate(spans)]
+            # Restos de prosa más cortos que la segunda columna: una fila real
+            # de winget siempre trae contenido en las columnas siguientes
+            if not any(values[1:]):
+                continue
+            rows.append(values)
+            last_row_line = i
+        return headers, rows
 
     @staticmethod
     def _split_merged_headers(headers: List[str], spans: List[int]
@@ -238,7 +249,9 @@ class WinGetClient:
                 return row[i] if i is not None and i < len(row) else ''
 
             pkg_id = cell(idx_id)
-            if not pkg_id:
+            # Los IDs de winget nunca contienen espacios: una celda de ID con
+            # espacios es texto de resumen recortado, no un paquete
+            if not pkg_id or re.search(r'\s', pkg_id):
                 continue
             packages.append(Package(
                 name=cell(idx_name) or pkg_id,
@@ -328,7 +341,8 @@ class WinGetClient:
                 return row[i] if i is not None and i < len(row) else ''
 
             pkg_id = cell(idx_id)
-            if not pkg_id:
+            # IDs sin espacios (ver _rows_to_packages): excluye prosa recortada
+            if not pkg_id or re.search(r'\s', pkg_id):
                 continue
             packages.append({
                 'name': cell(idx_name) or pkg_id,
@@ -593,7 +607,9 @@ class WinGetClient:
         idx_id = self._col_index(headers, 'id')
         if idx_id is None:
             return []
-        return [row[idx_id] for row in rows if idx_id < len(row) and row[idx_id].strip()]
+        return [row[idx_id].strip() for row in rows
+                if idx_id < len(row) and row[idx_id].strip()
+                and not re.search(r'\s', row[idx_id].strip())]
 
     # ------------------------------------------------------------------ #
     # Fuentes

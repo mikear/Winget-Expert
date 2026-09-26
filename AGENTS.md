@@ -43,6 +43,14 @@ against winget 1.29 (Spanish locale):
   apart** (real case: `Disponible Origen` merged into one token). Handled by
   `_split_merged_headers()` — keep it when touching the parser.
 - Separator line may contain spaces; detection tolerates that.
+- `winget upgrade --include-pinned` may emit **several tables** separated by
+  prose, and summaries can START AT COLUMN 0 (real case: `1 paquetes tienen
+  un pin que debe quitarse antes de la actualización`). `_table_rows`
+  re-syncs the header at every separator line and drops prose lines (they
+  cut words mid-way at column boundaries, or are single-cell rows).
+- Package IDs never contain whitespace: `_rows_to_packages` /
+  `search_packages` / `list_pinned_ids` drop rows whose ID cell has spaces
+  (belt and braces against mis-sliced summary text).
 - Trailing summary lines (e.g. `7 actualizaciones disponibles.`) must be skipped
   (rows not starting at col 0, or empty ID).
 - `get_upgrades()` must drop rows with empty/`Unknown` available version.
