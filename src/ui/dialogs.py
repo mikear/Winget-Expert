@@ -7,6 +7,7 @@ from datetime import datetime
 
 from PySide6.QtCore import Qt, QThread, QTimer, Signal
 from PySide6.QtGui import QFont
+from src.ui import icons
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QDialogButtonBox, QHBoxLayout, QHeaderView, QLabel,
     QLineEdit, QListWidget, QMessageBox, QProgressBar, QPushButton,
@@ -59,7 +60,7 @@ class InstallDialog(QDialog):
         search_layout.addWidget(QLabel("Buscar:"), 0)
         search_layout.addWidget(self.search_input, 1)
 
-        self.search_btn = QPushButton("🔍 Buscar")
+        self.search_btn = QPushButton(icons.icon(icons.SEARCH), "Buscar")
         self.search_btn.clicked.connect(self.search_packages)
         search_layout.addWidget(self.search_btn)
         layout.addLayout(search_layout)
@@ -376,7 +377,7 @@ class RestoreDialog(QDialog):
         lines = [f"Instalados correctamente: {ok}"]
         if fail:
             lines.append(f"Fallidos: {fail}\n")
-            lines.extend(f"✗ {name}: {msg}" for name, success, msg in self.results if not success)
+            lines.extend(f"- No instalado {name}: {msg}" for name, success, msg in self.results if not success)
         QMessageBox.information(self, "Restauración completada", "\n".join(lines))
 
 
@@ -598,7 +599,7 @@ class OperationDialog(QDialog):
         self.status_label = QLabel("Iniciando... (0 s)")
         bottom.addWidget(self.status_label, 1)
 
-        self.cancel_btn = QPushButton("✕ Cancelar")
+        self.cancel_btn = QPushButton(icons.icon(icons.CLOSE), "Cancelar")
         self.cancel_btn.clicked.connect(self.cancel_operation)
         bottom.addWidget(self.cancel_btn)
 
@@ -641,7 +642,7 @@ class OperationDialog(QDialog):
         except (TypeError, ValueError):
             success, message = False, str(result)
         self.append_log(f"── {message} ──")
-        self._finish("Completado ✓" if success else "Terminado con errores")
+        self._finish("Completado" if success else "Terminado con errores")
 
     def on_error(self, error_msg: str):
         self.result = (False, error_msg)

@@ -41,7 +41,12 @@ def main():
     settings = AppSettings()
     apply_theme(app, settings.theme == 'dark')
 
-    window = MainWindow(app)
+    from src.ui.splash import SplashScreen
+    splash = SplashScreen()
+    splash.show()
+    splash.show_message("Iniciando...")
+
+    window = MainWindow(app, splash=splash)
     window.show()
 
     sys.exit(app.exec())

@@ -5,11 +5,12 @@ import webbrowser
 from datetime import datetime
 
 from PySide6.QtCore import Qt, QThread, QTimer, Signal
+from PySide6.QtCore import QSize
 from PySide6.QtGui import QAction, QColor, QGuiApplication
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QFileDialog, QHBoxLayout, QHeaderView, QLineEdit, QMenu,
-    QMessageBox, QProgressBar, QPushButton, QStatusBar, QTableWidget,
-    QTableWidgetItem, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
+    QMessageBox, QProgressBar, QStatusBar, QTableWidget,
+    QTableWidgetItem, QToolBar, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget,
     QMainWindow, QCheckBox, QLabel,
 )
 
@@ -17,6 +18,7 @@ from src.core import install_dates
 from src.core.settings import AppSettings
 from src.core.winget_client import WinGetClient
 from src.core.models import Package
+from src.ui import icons
 from src.ui.dialogs import (
     InstallDialog, OperationDialog, PackageDetailsDialog, RestoreDialog,
     SourcesDialog, StreamWorker, WinGetMissingDialog,
@@ -52,7 +54,7 @@ class WorkerThread(QThread):
 class MainWindow(QMainWindow):
     """Ventana principal de WinGet GUI Manager Pro"""
 
-    def __init__(self, app):
+    def __init__(self, app, splash=None):
         super().__init__()
         self.app = app
         self.settings = AppSettings()
@@ -65,17 +67,43 @@ class MainWindow(QMainWindow):
         self._showing_updates = False
         self._tree_mode = False
         self._installed_sources = set()
+        self._splash = splash
 
         self.init_ui()
         self.restore_geometry()
 
         # Verificar WinGet antes de cargar nada; sin él no hay nada que gestionar
+        self._splash_message("Comprobando WinGet...")
         if self._ensure_winget():
+            self._splash_message("Cargando paquetes instalados...")
             self.refresh_packages()
             if self.settings.auto_check_updates:
                 self.show_updates()
         else:
             QTimer.singleShot(0, self.close)
+
+    # ------------------------------------------------------------------ #
+    # Splash
+    # ------------------------------------------------------------------ #
+
+    def _splash_message(self, message: str):
+        if self._splash is not None:
+            self._splash.show_message(message)
+
+    def _dismiss_splash(self):
+        """Cierra el splash respetando un tiempo mínimo de visualización."""
+        if self._splash is not None:
+            splash, self._splash = self._splash, None
+
+            def close_splash():
+                splash.finish(self)
+                splash.deleteLater()
+
+            remaining = splash.remaining_ms()
+            if remaining > 0:
+                QTimer.singleShot(remaining, close_splash)
+            else:
+                close_splash()
 
     # ------------------------------------------------------------------ #
     # Ciclo de vida
@@ -85,6 +113,7 @@ class MainWindow(QMainWindow):
         if self._worker and self._worker.isRunning():
             # No bloquear el cierre más de 3 segundos si hay una operación en curso
             self._worker.wait(3000)
+        self._dismiss_splash()
         self.settings.window_geometry = self.saveGeometry()
         self.settings.save()
         super().closeEvent(event)
@@ -142,7 +171,7 @@ class MainWindow(QMainWindow):
         # Aviso sobre Microsoft Store (solo visible en vista de actualizaciones
         # cuando hay apps de la Store instaladas)
         self.store_note = QLabel(
-            "ⓘ Las aplicaciones de Microsoft Store también se actualizan desde la "
+            "Nota: las aplicaciones de Microsoft Store también se actualizan desde la "
             "propia app <b>Microsoft Store</b>: si allí ves actualizaciones pendientes "
             "que aquí no aparecen, instálalas desde la Store sin problema.")
         self.store_note.setWordWrap(True)
@@ -249,59 +278,65 @@ class MainWindow(QMainWindow):
         self.tree.setVisible(False)
         layout.addWidget(self.tree)
 
-        # Botones de acción principales
-        main_buttons = QHBoxLayout()
+        # Barra de herramientas única con grupos lógicos:
+        #  [carga/vista]  [paquete]  [actualizaciones]  [backup]  [opciones]
+        toolbar = QToolBar("Principal")
+        toolbar.setMovable(False)
+        toolbar.setFloatable(False)
+        toolbar.setIconSize(QSize(16, 16))
+        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
 
-        self.refresh_btn = QPushButton("🔄 Refrescar")
-        self.refresh_btn.clicked.connect(self.refresh_packages)
-        main_buttons.addWidget(self.refresh_btn)
+        self.refresh_action = toolbar.addAction(icons.icon(icons.REFRESH), "Refrescar")
+        self.refresh_action.setShortcut("F5")
+        self.refresh_action.triggered.connect(self.refresh_packages)
 
-        self.updates_btn = QPushButton("⬆️ Actualizaciones")
-        self.updates_btn.clicked.connect(self.show_updates)
-        main_buttons.addWidget(self.updates_btn)
+        self.updates_action = toolbar.addAction(icons.icon(icons.UPDATES), "Actualizaciones")
+        self.updates_action.setShortcut("Ctrl+U")
+        self.updates_action.triggered.connect(self.show_updates)
 
-        self.upgrade_selected_btn = QPushButton("⚡ Actualizar Sel.")
-        self.upgrade_selected_btn.clicked.connect(self.upgrade_selected)
-        main_buttons.addWidget(self.upgrade_selected_btn)
+        toolbar.addSeparator()
 
-        self.upgrade_all_btn = QPushButton("🚀 Actualizar Todo")
-        self.upgrade_all_btn.clicked.connect(self.upgrade_all)
-        main_buttons.addWidget(self.upgrade_all_btn)
+        self.install_action = toolbar.addAction(icons.icon(icons.INSTALL), "Instalar")
+        self.install_action.setShortcut("Ctrl+I")
+        self.install_action.triggered.connect(self.show_install_dialog)
 
-        main_buttons.addStretch()
-        layout.addLayout(main_buttons)
+        self.info_action = toolbar.addAction(icons.icon(icons.DETAILS), "Detalles")
+        self.info_action.triggered.connect(self.show_package_details)
 
-        # Botones de gestión de paquetes
-        pkg_buttons = QHBoxLayout()
+        self.uninstall_action = toolbar.addAction(icons.icon(icons.UNINSTALL), "Desinstalar")
+        self.uninstall_action.triggered.connect(self.uninstall_selected)
 
-        self.install_btn = QPushButton("📦 Instalar Nuevo")
-        self.install_btn.clicked.connect(self.show_install_dialog)
-        pkg_buttons.addWidget(self.install_btn)
+        self.upgrade_selected_action = toolbar.addAction(
+            icons.icon(icons.UPGRADE_ONE), "Actualizar Sel.")
+        self.upgrade_selected_action.triggered.connect(self.upgrade_selected)
 
-        self.uninstall_btn = QPushButton("🗑️ Desinstalar")
-        self.uninstall_btn.clicked.connect(self.uninstall_selected)
-        pkg_buttons.addWidget(self.uninstall_btn)
+        self.upgrade_all_action = toolbar.addAction(
+            icons.icon(icons.UPGRADE_ALL), "Actualizar Todo")
+        self.upgrade_all_action.triggered.connect(self.upgrade_all)
 
-        self.info_btn = QPushButton("ℹ️ Detalles")
-        self.info_btn.clicked.connect(self.show_package_details)
-        pkg_buttons.addWidget(self.info_btn)
+        toolbar.addSeparator()
 
-        self.backup_btn = QPushButton("💾 Backup")
-        self.backup_btn.clicked.connect(self.create_backup)
-        pkg_buttons.addWidget(self.backup_btn)
+        self.backup_action = toolbar.addAction(icons.icon(icons.BACKUP), "Backup")
+        self.backup_action.setShortcut("Ctrl+N")
+        self.backup_action.triggered.connect(self.create_backup)
 
-        self.restore_btn = QPushButton("♻️ Restaurar")
-        self.restore_btn.clicked.connect(self.restore_backup)
-        pkg_buttons.addWidget(self.restore_btn)
+        self.restore_action = toolbar.addAction(icons.icon(icons.RESTORE), "Restaurar")
+        self.restore_action.setShortcut("Ctrl+O")
+        self.restore_action.triggered.connect(self.restore_backup)
 
-        self.options_btn = QPushButton("⚙️ Opciones")
-        self.options_btn.clicked.connect(self.show_options_menu)
-        pkg_buttons.addWidget(self.options_btn)
+        self.export_action = toolbar.addAction(icons.icon(icons.EXPORT), "Exportar")
+        self.export_action.setShortcut("Ctrl+E")
+        self.export_action.triggered.connect(self.export_package_list)
 
-        pkg_buttons.addStretch()
-        layout.addLayout(pkg_buttons)
+        toolbar.addSeparator()
 
-        self.statusBar().showMessage("Listo")
+        self.options_action = toolbar.addAction(icons.icon(icons.OPTIONS), "Opciones")
+        self.options_action.triggered.connect(self.show_options_menu)
+
+        self.addToolBar(toolbar)
+        self.actions_toolbar = toolbar
+
+        self.statusBar().showMessage("Cargando paquetes...")
         self.update_action_buttons()
 
     def create_menu_bar(self):
@@ -333,11 +368,11 @@ class MainWindow(QMainWindow):
         # Menú Editar
         edit_menu = menubar.addMenu("Editar")
 
-        refresh_action = edit_menu.addAction("Refrescar Paquetes")
+        refresh_action = edit_menu.addAction(icons.icon(icons.REFRESH), "Refrescar Paquetes")
         refresh_action.setShortcut("F5")
         refresh_action.triggered.connect(self.refresh_packages)
 
-        search_updates_action = edit_menu.addAction("Buscar Actualizaciones")
+        search_updates_action = edit_menu.addAction(icons.icon(icons.UPDATES), "Buscar Actualizaciones")
         search_updates_action.setShortcut("Ctrl+U")
         search_updates_action.triggered.connect(self.show_updates)
 
@@ -365,22 +400,22 @@ class MainWindow(QMainWindow):
         # Menú Herramientas
         tools_menu = menubar.addMenu("Herramientas")
 
-        install_action = tools_menu.addAction("Instalar Paquete...")
+        install_action = tools_menu.addAction(icons.icon(icons.INSTALL), "Instalar Paquete...")
         install_action.setShortcut("Ctrl+I")
         install_action.triggered.connect(self.show_install_dialog)
 
         tools_menu.addSeparator()
 
-        sources_action = tools_menu.addAction("Gestionar Fuentes...")
+        sources_action = tools_menu.addAction(icons.icon(icons.SOURCES), "Gestionar Fuentes...")
         sources_action.triggered.connect(self.manage_sources)
 
-        cache_action = tools_menu.addAction("Limpiar Temporales de WinGet...")
+        cache_action = tools_menu.addAction(icons.icon(icons.CLEAN), "Limpiar Temporales de WinGet...")
         cache_action.triggered.connect(self.clean_temp_files)
 
         # Menú Ayuda
         help_menu = menubar.addMenu("Ayuda")
 
-        manual_action = help_menu.addAction("Manual de Usuario")
+        manual_action = help_menu.addAction(icons.icon(icons.MANUAL), "Manual de Usuario")
         manual_action.setShortcut("F1")
         manual_action.triggered.connect(self.show_user_manual)
 
@@ -422,10 +457,10 @@ class MainWindow(QMainWindow):
 
     def set_loading(self, loading: bool):
         self.progress_bar.setVisible(loading)
-        for btn in (self.refresh_btn, self.updates_btn, self.install_btn,
-                    self.backup_btn, self.restore_btn, self.options_btn,
-                    self.upgrade_all_btn):
-            btn.setEnabled(not loading)
+        for act in (self.refresh_action, self.updates_action, self.install_action,
+                    self.backup_action, self.restore_action, self.export_action,
+                    self.options_action, self.upgrade_all_action):
+            act.setEnabled(not loading)
         if loading:
             QGuiApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         else:
@@ -442,11 +477,11 @@ class MainWindow(QMainWindow):
         self.update_action_buttons()
 
     def update_action_buttons(self):
-        """Habilita botones según selección y estado"""
+        """Habilita acciones según selección y estado"""
         selected = self.current_package() is not None
-        self.upgrade_selected_btn.setEnabled(selected and not self._busy)
-        self.uninstall_btn.setEnabled(selected and not self._busy)
-        self.info_btn.setEnabled(selected and not self._busy)
+        self.upgrade_selected_action.setEnabled(selected and not self._busy)
+        self.uninstall_action.setEnabled(selected and not self._busy)
+        self.info_action.setEnabled(selected and not self._busy)
 
     # ------------------------------------------------------------------ #
     # Obtención del paquete seleccionado (a prueba de ordenación)
@@ -511,8 +546,8 @@ class MainWindow(QMainWindow):
         self.populate_table(filtered)
         self.populate_tree(filtered)
         self.count_label.setText(f"Mostrando: {len(filtered)} / {len(self.packages)}")
-        # El botón refleja actualizaciones reales (no solo visibles por filtro)
-        self.upgrade_all_btn.setEnabled(
+        # La acción refleja actualizaciones reales (no solo visibles por filtro)
+        self.upgrade_all_action.setEnabled(
             not self._busy and any(p.has_update and not p.pinned for p in self.packages))
         self.update_action_buttons()
 
@@ -628,21 +663,34 @@ class MainWindow(QMainWindow):
         """Refresca la lista de paquetes instalados (con estado de pines real)."""
         self._showing_updates = False
         self.title_label.setText("<h2>Paquetes Instalados</h2>")
-        self._start_worker(
-            lambda: (self.client.list_pinned_ids(), self.client.list_packages(),
-                     install_dates.refresh_install_dates()),
-            on_finished=self.on_packages_loaded,
-        )
+        self.statusBar().showMessage("Cargando paquetes instalados...")
+        self._start_worker(self._load_installed, on_finished=self.on_packages_loaded)
 
     def show_updates(self):
         """Muestra solo paquetes con actualizaciones disponibles."""
         self._showing_updates = True
         self.title_label.setText("<h2>Actualizaciones Disponibles</h2>")
-        self._start_worker(
-            lambda: (self.client.list_pinned_ids(), self.client.get_upgrades(),
-                     install_dates.refresh_install_dates()),
-            on_finished=self.on_packages_loaded,
-        )
+        self.statusBar().showMessage("Buscando actualizaciones...")
+        self._start_worker(self._load_upgrades, on_finished=self.on_packages_loaded)
+
+    # La carga (winget + registro + Appx + fechas) corre íntegra en el worker:
+    # _enrich_dates consulta el sistema por paquete y congelaría la UI.
+
+    def _load_installed(self):
+        pinned = self.client.list_pinned_ids()
+        packages, error = self.client.list_packages()
+        if not error:
+            install_dates.refresh_install_dates()
+            self._enrich_dates(packages)
+        return pinned, (packages, error), None
+
+    def _load_upgrades(self):
+        pinned = self.client.list_pinned_ids()
+        packages, error = self.client.get_upgrades()
+        if not error:
+            install_dates.refresh_install_dates()
+            self._enrich_dates(packages)
+        return pinned, (packages, error), None
 
     def _enrich_dates(self, packages):
         """Completa fechas: sistema (registro/Appx) + historial de esta app."""
@@ -658,6 +706,7 @@ class MainWindow(QMainWindow):
 
         if error:
             self._finish_worker()
+            self._dismiss_splash()
             self.on_error(error)
             return
 
@@ -682,6 +731,7 @@ class MainWindow(QMainWindow):
 
         self.apply_filters()
         self._finish_worker()
+        self._dismiss_splash()
 
         # Aviso de Microsoft Store solo en vista de actualizaciones y si hay
         # apps de la Store instaladas (sus updates pueden verse solo en la Store)
@@ -689,7 +739,7 @@ class MainWindow(QMainWindow):
             self._showing_updates and 'msstore' in self._installed_sources)
 
         if self._showing_updates and not packages:
-            self.statusBar().showMessage("No hay actualizaciones disponibles ✓")
+            self.statusBar().showMessage("No hay actualizaciones disponibles", 5000)
 
     # ------------------------------------------------------------------ #
     # Menú contextual y acciones de paquete
@@ -721,24 +771,25 @@ class MainWindow(QMainWindow):
             return
         menu = QMenu(self)
 
-        details = menu.addAction("ℹ️ Detalles")
+        details = menu.addAction(icons.icon(icons.DETAILS), "Detalles")
         details.triggered.connect(self.show_package_details)
 
         if pkg.has_update:
-            update = menu.addAction(f"⬆️ Actualizar a {pkg.available_version}")
+            update = menu.addAction(icons.icon(icons.UPGRADE_ONE),
+                                    f"Actualizar a {pkg.available_version}")
             update.triggered.connect(self.upgrade_selected)
 
         if pkg.pinned:
-            pin = menu.addAction("📍 Quitar fijado")
+            pin = menu.addAction(icons.icon(icons.PIN), "Quitar fijado")
         else:
-            pin = menu.addAction("📌 Fijar (bloquear actualizaciones)")
+            pin = menu.addAction(icons.icon(icons.PIN), "Fijar (bloquear actualizaciones)")
         pin.triggered.connect(lambda: self.toggle_pin(pkg))
 
-        copy_id = menu.addAction("📋 Copiar ID")
+        copy_id = menu.addAction(icons.icon(icons.COPY), "Copiar ID")
         copy_id.triggered.connect(lambda: QGuiApplication.clipboard().setText(pkg.id))
 
         menu.addSeparator()
-        uninstall = menu.addAction("🗑️ Desinstalar")
+        uninstall = menu.addAction(icons.icon(icons.UNINSTALL), "Desinstalar")
         uninstall.triggered.connect(self.uninstall_selected)
 
         view = self.tree.viewport() if self._tree_mode else self.table.viewport()
@@ -1026,15 +1077,19 @@ class MainWindow(QMainWindow):
 
     def show_options_menu(self):
         menu = QMenu(self)
-        menu.addAction("📚 Gestionar Fuentes", self.manage_sources)
+        menu.addAction(icons.icon(icons.SOURCES), "Gestionar Fuentes", self.manage_sources)
         menu.addSeparator()
-        menu.addAction("📄 Exportar lista", self.export_package_list)
-        menu.addAction("🗑️ Limpiar Temporales de WinGet", self.clean_temp_files)
+        menu.addAction(icons.icon(icons.EXPORT), "Exportar lista", self.export_package_list)
+        menu.addAction(icons.icon(icons.CLEAN), "Limpiar Temporales de WinGet", self.clean_temp_files)
         menu.addSeparator()
-        menu.addAction("ℹ️ Acerca de", self.show_about)
+        menu.addAction(icons.icon(icons.DETAILS), "Acerca de", self.show_about)
 
-        btn_pos = self.options_btn.mapToGlobal(self.options_btn.rect().bottomLeft())
-        menu.exec(btn_pos)
+        # Anclar el menú bajo el botón de la acción en la barra de herramientas
+        btn = self.actions_toolbar.widgetForAction(self.options_action)
+        if btn is not None:
+            menu.exec(btn.mapToGlobal(btn.rect().bottomLeft()))
+        else:
+            menu.exec(QGuiApplication.primaryScreen().availableGeometry().center())
 
     def clean_temp_files(self):
         """Limpieza segura: solo instaladores temporales de winget en %TEMP%."""
