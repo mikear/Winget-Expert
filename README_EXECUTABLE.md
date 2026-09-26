@@ -4,11 +4,13 @@
 
 | Archivo | Tipo | Descripción |
 |---|---|---|
-| `WinGet_Expert.exe` | Portable | Archivo único, no requiere Python ni instalación |
-| `WinGet_Expert_Instalador.exe` | Instalador | Asistente en español (Inno Setup): accesos directos, menú Inicio y desinstalador |
+| `WinGet_Expert_v3.0.exe` | Portable | Archivo único, no requiere Python ni instalación |
+| `WinGet_Expert_Instalador_v3.0.exe` | Instalador | Asistente en español (Inno Setup): accesos directos, menú Inicio y desinstalador |
 
-Ambos se generan con el mismo icono y diseño del splash, y están
-disponibles para descarga en el [README](README.md).
+Ambos llevan la versión en el nombre (definida en `src/version.py`); el
+instalador coloca la aplicación como `WinGet_Expert.exe` (sin versión) en
+`Archivos de programa` para que los accesos directos sobrevivan a
+actualizaciones. Disponibles para descarga en el [README](README.md).
 
 ## Cómo regenerarlos
 
@@ -16,11 +18,11 @@ disponibles para descarga en el [README](README.md).
 # Portable (PyInstaller; tarda varios minutos)
 pip install pyinstaller
 pyinstaller winget_gui.spec
-# → dist\WinGet_Expert.exe
+# → dist\WinGet_Expert_v3.0.exe
 
 # Instalador (Inno Setup 6)
 & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" instalador.iss
-# → dist\WinGet_Expert_Instalador.exe
+# → dist\WinGet_Expert_Instalador_v3.0.exe
 ```
 
 Notas importantes (ver `AGENTS.md`):

@@ -1,8 +1,12 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 import os
+import sys
 
 base_path = os.path.dirname(os.path.abspath(SPEC))
+sys.path.insert(0, base_path)
+
+from src.version import APP_VERSION  # noqa: E402
 
 a = Analysis(
     ['main.py'],
@@ -49,7 +53,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='WinGet_Expert',
+    name=f'WinGet_Expert_v{APP_VERSION}',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

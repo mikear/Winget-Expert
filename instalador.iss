@@ -1,7 +1,7 @@
 ; Instalador de WinGet Expert (Inno Setup, en español).
-; Compilar (tras generar dist\WinGet_Expert.exe con PyInstaller):
+; Compilar (tras generar dist\WinGet_Expert_v<version>.exe con PyInstaller):
 ;   "%LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" instalador.iss
-; Produce dist\WinGet_Expert_Instalador.exe
+; Produce dist\WinGet_Expert_Instalador_v<version>.exe
 
 #define NombreApp "WinGet Expert"
 #define VersionApp "3.0"
@@ -21,7 +21,7 @@ DefaultGroupName={#NombreApp}
 UninstallDisplayName={#NombreApp}
 UninstallDisplayIcon={app}\WinGet_Expert.exe
 OutputDir=dist
-OutputBaseFilename=WinGet_Expert_Instalador
+OutputBaseFilename=WinGet_Expert_Instalador_v{#VersionApp}
 SetupIconFile=assets\icon.ico
 Compression=lzma2/max
 SolidCompression=yes
@@ -39,7 +39,9 @@ Name: "iconoescritorio"; Description: "Crear acceso directo en el escritorio"; G
 Name: "iniciarmenu"; Description: "Crear acceso en el menú Inicio"; GroupDescription: "Accesos directos:"; Flags: checkedonce
 
 [Files]
-Source: "dist\WinGet_Expert.exe"; DestDir: "{app}"; Flags: ignoreversion
+; El binario distribuido lleva la versión en el nombre; instalado queda fijo
+; para que los accesos directos sobrevivan a actualizaciones.
+Source: "dist\WinGet_Expert_v{#VersionApp}.exe"; DestDir: "{app}"; DestName: "WinGet_Expert.exe"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#NombreApp}"; Filename: "{app}\WinGet_Expert.exe"; Tasks: iniciarmenu

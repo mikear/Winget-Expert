@@ -30,14 +30,14 @@ actualiza y desinstala aplicaciones de Windows sin tocar la terminal.
 
 ## Descarga
 
-Dos formas de instalar, elige la que prefieras:
+Dos formas de instalar, elige la que prefieras (versión 3.0):
 
 - **Instalador** (recomendado):
-  **[WinGet_Expert_Instalador.exe](https://github.com/mikear/Winget-Expert/raw/main/dist/WinGet_Expert_Instalador.exe)**
+  **[WinGet_Expert_Instalador_v3.0.exe](https://github.com/mikear/Winget-Expert/raw/main/dist/WinGet_Expert_Instalador_v3.0.exe)**
   (~47 MB, asistente en español: accesos directos, menú Inicio y
   desinstalación desde "Aplicaciones instaladas").
 - **Portable**:
-  **[WinGet_Expert.exe](https://github.com/mikear/Winget-Expert/raw/main/dist/WinGet_Expert.exe)**
+  **[WinGet_Expert_v3.0.exe](https://github.com/mikear/Winget-Expert/raw/main/dist/WinGet_Expert_v3.0.exe)**
   (~45 MB, sin instalación: no requiere Python, doble clic y listo).
 
 ## Requisitos
@@ -59,12 +59,15 @@ python main.py
 ```powershell
 pip install pyinstaller
 pyinstaller winget_gui.spec
-# → dist\WinGet_Expert.exe (portable, no requiere Python)
+# → dist\WinGet_Expert_v3.0.exe (portable, no requiere Python)
 
 # Instalador (requiere Inno Setup 6):
 & "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" instalador.iss
-# → dist\WinGet_Expert_Instalador.exe
+# → dist\WinGet_Expert_Instalador_v3.0.exe
 ```
+
+La versión se define una sola vez en `src/version.py` (y en la cabecera
+de `instalador.iss` al subir de versión).
 
 ## Estructura
 

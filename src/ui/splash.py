@@ -11,6 +11,7 @@ from PySide6.QtGui import (QBrush, QColor, QFont, QLinearGradient, QPainter,
 from PySide6.QtWidgets import QSplashScreen, QApplication
 
 from src.ui.app_icon import icono_aplicacion, pintar_icono_app
+from src.version import APP_VERSION
 
 _WIDTH = 640
 _HEIGHT = 360
@@ -19,7 +20,6 @@ _SCALE = 2  # renderizar a 2x para nitidez en pantallas HiDPI
 _APP_TITLE = "WinGet Expert"
 _APP_SUBTITLE = "Gestor gráfico para Windows Package Manager"
 _APP_AUTHOR = "Diego A. Rábalo"
-_APP_VERSION = "3.0"
 
 
 def _rounded_rect_path(rect: QRect, radius: float) -> QPainterPath:
@@ -151,4 +151,4 @@ class SplashScreen(QSplashScreen):
         version.setPixelSize(13)
         painter.setFont(version)
         painter.setPen(QColor(0x7A, 0x93, 0xA8))
-        painter.drawText(QPoint(24, _HEIGHT - 38), f"v{_APP_VERSION}")
+        painter.drawText(QPoint(24, _HEIGHT - 38), f"v{APP_VERSION}")

@@ -30,7 +30,7 @@ Entry: `main.py` → `MainWindow` (`src/ui/main_window.py`).
 - `debug_winget.py` — capture real winget output for parser work
 - `winget_gui.spec` — PyInstaller one-file build; `assets/` (icon, FA font) bundled via `datas`
 - `instalador.iss` — Inno Setup 6 script (Spanish); builds
-  `dist/WinGet_Expert_Instalador.exe` from the portable exe:
+  `dist/WinGet_Expert_Instalador_v<ver>.exe` from the portable exe:
   `& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" instalador.iss`
   (ISCC lives in %LOCALAPPDATA%\Programs\Inno Setup 6 on this machine)
 
@@ -126,16 +126,22 @@ $env:QT_QPA_PLATFORM='offscreen'; python -c "..."   # smoke: build MainWindow/di
 - `pyinstaller winget_gui.spec` (takes minutes). `upx=False` is intentional —
   UPX corrupts Qt DLLs. `icon='assets/icon.ico'`; regenerate via
   `python create_icon.py` (needs PySide6 + Pillow, dev-only, native platform).
-- The exe is named `dist/WinGet_Expert.exe` (spec `name=`); renaming it
-  means updating `instalador.iss`, README links and this file.
+- The version lives ONLY in `src/version.py` (`APP_VERSION`); the spec
+  imports it to name the exe `dist/WinGet_Expert_v<ver>.exe`, and
+  `splash.py`/`main_window.py` (About) read it too. When bumping, also
+  update `#define VersionApp` in `instalador.iss` (Inno preprocessor can't
+  read Python).
+- The installer embeds the versioned exe but installs it as
+  `WinGet_Expert.exe` (`DestName`) so shortcuts survive upgrades.
 - Font Awesome (`assets/fonts/fa-solid-900.ttf`, CC BY 4.0 — keep the About
   attribution) loads at startup in `main.py`; works frozen via `sys._MEIPASS`.
 - Don't commit `build/`, `dist/`, `__pycache__/` (see `.gitignore`).
-- Exception: the release binaries `dist/WinGet_Expert.exe` and
-  `dist/WinGet_Expert_Instalador.exe` are tracked via `git add -f` on
-  purpose (README links them); rebuilds need the same flag. Kill running
-  exe instances first — Windows locks the file and the build fails with
-  `PermissionError`.
+- Exception: the release binaries `dist/WinGet_Expert_v<ver>.exe` and
+  `dist/WinGet_Expert_Instalador_v<ver>.exe` are tracked via `git add -f`
+  on purpose (README links them); rebuilds need the same flag, and the
+  previous version's binaries must be removed from git when bumping.
+  Kill running exe instances first — Windows locks the file and the build
+  fails with `PermissionError`.
 - Frozen-exe crash with no output: check Event Viewer → Application, Error 1000
   (`Qt6Core.dll`); then build a `--console --name WinGet_Debug` variant to see
   the traceback (delete its `.spec`/exe/`build/` afterwards).

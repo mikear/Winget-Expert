@@ -26,6 +26,7 @@ from src.ui.dialogs import (
 )
 from src.ui.additional_dialogs import FilterSettingsDialog, UserManualDialog
 from src.ui.theme import apply_theme
+from src.version import APP_VERSION
 
 _GITHUB_URL = 'https://github.com/'
 
@@ -1121,7 +1122,7 @@ class MainWindow(QMainWindow):
         mensajes.acerca_de(
             self, "Acerca de WinGet Expert",
             "<h2>WinGet Expert</h2>"
-            "<p><b>Versión:</b> 3.0</p>"
+            f"<p><b>Versión:</b> {APP_VERSION}</p>"
             "<p>Interfaz gráfica para Windows Package Manager (WinGet) que facilita "
             "la gestión de paquetes y aplicaciones en Windows.</p>"
             "<p><b>Características:</b> instalar, actualizar y desinstalar paquetes; "
