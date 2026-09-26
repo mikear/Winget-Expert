@@ -106,9 +106,16 @@ def main():
             'WinGet, versión 1.29.0',
             f'Buscando actualizaciones para: {pkg.id}',
             f'Encontrado {pkg.name} [{pkg.id}]',
-            'Descargando instalador...',
-            f'{version_destino} [============================] 100%',
-            'Instalando el paquete...',
+            'Comenzando a descargar del paquete...',
+            '  ████░░░░░░░░░░░░  18%',
+            '  ████████░░░░░░░░  37%',
+            '  █████████████░░░  64%',
+            '  ███████████████░  86%',
+            '  ████████████████  100%',
+            'Hash del instalador verificado correctamente',
+            'Iniciando la instalación del paquete...',
+            '  █████░░░░░░░░░░░  32%',
+            '  ███████████░░░░░  71%',
             'Se instaló correctamente el paquete',
         ]
         for linea in lineas:
@@ -125,9 +132,12 @@ def main():
         f'{pkg.version} → {version_destino} (salida de WinGet en vivo)', worker)
     op_dlg.resize(900, 600)
     op_dlg.show()
-    _esperar(app, lambda: len(op_dlg.log_view.toPlainText().splitlines()) >= 5,
-             30, 'lineas del log simulado')
-    time.sleep(0.3)
+    # Capturar con la barra determinada en un valor intermedio de la instalación
+    _esperar(app, lambda: 'Iniciando la instalación' in op_dlg.log_view.toPlainText(),
+             30, 'fase de instalacion simulada')
+    _esperar(app, lambda: op_dlg.progress_bar.maximum() == 100
+             and 30 <= op_dlg.progress_bar.value() <= 90,
+             10, 'barra de instalacion intermedia')
     op_dlg.grab().save('docs/screenshots/03-actualizando.png')
     _esperar(app, lambda: op_dlg._done, 30, 'fin del worker simulado')
     op_dlg.close()

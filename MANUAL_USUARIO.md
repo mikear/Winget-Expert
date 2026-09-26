@@ -144,7 +144,7 @@
 1. Selecciona el paquete en la tabla
 2. Haz clic en **Desinstalar**
 3. Confirma la acción
-4. Sigue el log en vivo hasta que complete
+4. Sigue la barra de progreso (descarga e instalación en tiempo real) y el log en vivo
 
 ### **3. Ver Detalles del Paquete**
 1. Haz doble clic en un paquete (o botón **Detalles**)

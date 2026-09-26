@@ -436,9 +436,10 @@ class WinGetClient:
                 for raw in proc.stdout:
                     chunks.append(raw)
                     if on_line:
-                        # winget reescribe el progreso con \r: mostrar cada tramo
+                        # winget reescribe el progreso con \r: mostrar cada tramo,
+                        # sin los códigos de escape ANSI de las barras
                         for part in raw.replace('\r', '\n').split('\n'):
-                            text = part.strip()
+                            text = _ANSI_RE.sub('', part).strip()
                             if text:
                                 on_line(text)
             except (OSError, ValueError):

@@ -21,7 +21,8 @@ actualiza y desinstala aplicaciones de Windows sin tocar la terminal.
 - **Vista tabla y árbol**, con agrupación por fuente o estado.
 - **Fechas de instalación y última actualización** (registro de Windows + historial).
 - **Modo silencioso** (`--silent`) conmutable y persistente.
-- **Log en vivo** de cada operación larga, con botón **Cancelar**.
+- **Log en vivo** de cada operación larga, con **progreso de descarga e
+  instalación en tiempo real** y botón **Cancelar**.
 - **Pines reales de WinGet** (bloquean actualizaciones incluso por CLI).
 - **Copias de seguridad** en JSON, restauración asistida y exportación a **CSV/JSON/TXT**.
 - **Gestión de fuentes** de paquetes y limpieza de temporales.

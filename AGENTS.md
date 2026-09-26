@@ -15,6 +15,11 @@ Entry: `main.py` → `MainWindow` (`src/ui/main_window.py`).
 - `src/ui/` — `main_window.py`, `dialogs.py` (incl. `StreamWorker`,
   `OperationDialog`, `WinGetMissingDialog`), `additional_dialogs.py`,
   `mensajes.py`, `splash.py`, `app_icon.py`, `theme.py`
+- `OperationDialog` — winget redraws progress with `\r`; `run_streaming`
+  splits it and strips ANSI per line before `on_line`. The dialog parses
+  percent/phase from those frames into a determinate progress bar + status
+  label ("Descargando... 47%"); the LOG only gets meaningful lines plus
+  progress milestones (every 25% or phase change), never raw progress spam.
 - `src/ui/mensajes.py` — ALL user-facing QMessageBox/QDialogButtonBox go
   through this module: Qt standard buttons render in English otherwise
   (Yes/No/OK/Cancel/Close). Never call `QMessageBox.question(...)` static

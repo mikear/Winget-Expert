@@ -1,6 +1,7 @@
 """
 Diálogos principales: instalar, detalles, restaurar backup y fuentes.
 """
+import re
 import threading
 import time
 from datetime import datetime
@@ -545,6 +546,11 @@ class StreamWorker(QThread):
 class OperationDialog(QDialog):
     """Diálogo de operación larga con log en vivo y botón Cancelar.
 
+    El progreso que winget redibuja con \\r (barras y porcentajes) no se
+    vuelca al log: alimenta una barra de progreso determinada y la etiqueta
+    de estado ("Descargando... 47% (12 s)"); al log solo van las líneas con
+    contenido (y los hitos de progreso, uno cada 25%).
+
     Uso:
         worker = StreamWorker(client.upgrade_package, pkg_id, silent=True)
         dialog = OperationDialog("Actualizar X", "Descargando e instalando...", worker, self)
@@ -552,12 +558,29 @@ class OperationDialog(QDialog):
         result = dialog.result  # (success, message) o None si se cerró con error
     """
 
+    _RE_PCT = re.compile(r'(\d{1,3})\s*%')
+    _BARRA = set('█░▒▓▉▊▇▆▅▄▃▂▁▏▕')
+    _GIRO = ('-', '\\', '|', '/', '—', '–', '·')
+    _FASES = (
+        ('descargando', 'Descargando'), ('comenzando a descargar', 'Descargando'),
+        ('downloading', 'Descargando'),
+        ('instalando', 'Instalando'), ('iniciando la instalaci', 'Instalando'),
+        ('installing', 'Instalando'),
+        ('desinstalando', 'Desinstalando'), ('uninstalling', 'Desinstalando'),
+        ('verificando', 'Verificando'), ('hash del instalador', 'Verificando'),
+        ('validando', 'Validando'), ('obteniendo', 'Obteniendo'),
+        ('esperando', 'Esperando'),
+    )
+
     def __init__(self, title: str, subtitle: str, worker: StreamWorker, parent=None):
         super().__init__(parent)
         self.worker = worker
         self.result = None
         self._done = False
         self._start = time.time()
+        self._fase = ''
+        self._ultimo_progreso = ''
+        self._proximo_hito = 25
 
         self.setWindowTitle(title)
         self.resize(720, 480)
@@ -583,7 +606,7 @@ class OperationDialog(QDialog):
         layout.addWidget(self.log_view, 1)
 
         self.progress_bar = QProgressBar()
-        self.progress_bar.setRange(0, 0)  # indeterminado mientras trabaja
+        self.progress_bar.setRange(0, 0)  # indeterminado hasta ver un porcentaje
         layout.addWidget(self.progress_bar)
 
         bottom = QHBoxLayout()
@@ -602,25 +625,88 @@ class OperationDialog(QDialog):
         layout.addLayout(bottom)
 
         self._timer = QTimer(self)
-        self._timer.timeout.connect(self._update_elapsed)
+        self._timer.timeout.connect(self._refrescar_estado)
 
-    def append_log(self, text: str):
-        self.log_view.append(text)
+    # ------------------------------------------------------------------ #
+    # Progreso en vivo
+    # ------------------------------------------------------------------ #
+
+    @classmethod
+    def _fase_de(cls, texto: str) -> str:
+        """Nombre de fase (Descargando/Instalando/...) si la línea lo indica."""
+        bajo = texto.strip().lower()
+        for prefijo, nombre in cls._FASES:
+            if bajo.startswith(prefijo):
+                return nombre
+        return ''
+
+    def _refrescar_estado(self):
+        """Etiqueta de estado: fase actual (o genérico) y tiempo transcurrido."""
+        if self._done:
+            return
+        base = self._fase or "Trabajando..."
+        self.status_label.setText(f"{base} ({self._elapsed()} s)")
+
+    def _cambiar_fase(self, nueva: str):
+        if nueva and nueva != self._fase:
+            self._fase = nueva
+            # La nueva etapa reinicia su propio porcentaje
+            self._proximo_hito = 25
+            if self.progress_bar.maximum() != 0:
+                self.progress_bar.setRange(0, 0)
+                self.progress_bar.reset()
+
+    def _actualizar_progreso(self, texto: str, pct):
+        """Redibujado de winget: barra/porcentaje a la barra de progreso."""
+        if texto == self._ultimo_progreso:
+            return  # mismo cuadro redibujado: ignorar
+        self._ultimo_progreso = texto
+
+        nueva_fase = self._fase_de(texto)
+        if nueva_fase:
+            self._cambiar_fase(nueva_fase)
+
+        if pct is not None:
+            valor = max(0, min(100, int(pct.group(1))))
+            if self.progress_bar.maximum() == 0:
+                self.progress_bar.setRange(0, 100)
+            self.progress_bar.setValue(valor)
+            # Al log solo los hitos (cada 25 %) para mantenerlo legible
+            if valor >= self._proximo_hito:
+                self._proximo_hito = (valor // 25 + 1) * 25
+                self.log_view.append(texto)
+                self._scroll_al_final()
+        self._refrescar_estado()
+
+    def _scroll_al_final(self):
         scrollbar = self.log_view.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
+
+    def append_log(self, text: str):
+        if not text.strip():
+            return
+        pct = self._RE_PCT.search(text)
+        es_barra = any(c in text for c in self._BARRA)
+        es_giro = text.strip() in self._GIRO
+        if es_giro or es_barra or (pct and len(text) <= 60):
+            self._actualizar_progreso(text, pct if (es_barra or len(text) <= 60) else None)
+            return
+
+        fase = self._fase_de(text)
+        if fase:
+            self._cambiar_fase(fase)
+        self.log_view.append(text)
+        self._scroll_al_final()
+        self._refrescar_estado()
 
     def _elapsed(self) -> int:
         return int(time.time() - self._start)
 
-    def _update_elapsed(self):
-        if not self._done:
-            self.status_label.setText(f"Trabajando... ({self._elapsed()} s)")
-
     def _finish(self, message: str):
         self._done = True
         self._timer.stop()
-        self.progress_bar.setRange(0, 1)
-        self.progress_bar.setValue(1)
+        self.progress_bar.setRange(0, 100)
+        self.progress_bar.setValue(100)
         self.cancel_btn.setEnabled(False)
         self.close_btn.setEnabled(True)
         self.close_btn.setFocus()
