@@ -41,7 +41,14 @@ Entry: `main.py` → `MainWindow` (`src/ui/main_window.py`).
   Detects a previous install (uninstall registry key, HKLM64/32 + HKCU32/64)
   and shows a custom wizard page: update in place / uninstall first / exit,
   with special cases for same version (reinstall) and newer installed
-  (downgrade warning); refuses to continue while the app window is open.
+   (downgrade warning); refuses to continue while the app window is open.
+- Inno `[Code]` gotcha: `ComparePackedVersion` takes **Int64**, not String —
+  passing a version text compiles fine but dies at runtime with
+  `Runtime error (at X:Y): Type Mismatch` the moment Setup opens. Convert
+  first with `StrToVersion(text, v)`. Diagnose runtime script errors with
+  `setup.exe /LOG=...` (the log pinpoints the failing event function).
+  Also: `and`/`or` DO short-circuit in this Pascal Script, so
+  `(Page <> nil) and (Page.ID = ...)` guards are safe.
 
 ## WinGet parser (most bug-prone area)
 

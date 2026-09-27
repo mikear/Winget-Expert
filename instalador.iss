@@ -105,10 +105,26 @@ begin
   Result := FindWindowByWindowName('{#NombreApp}') <> 0;
 end;
 
+function CompararVersiones(const A, B: String): Integer;
+// Devuelve <0 si A es anterior, 0 si son iguales y >0 si A es más nueva.
+// ComparePackedVersion recibe Int64 (no String): pasarle texto compila pero
+// revienta en tiempo de ejecución con "Type Mismatch". Si alguna versión no
+// se puede analizar (p. ej. "Unknown"), se asume -1 para ofrecer actualizar.
+var
+  VA, VB: Int64;
+begin
+  Result := -1;
+  if not StrToVersion(A, VA) then
+    Exit;
+  if not StrToVersion(B, VB) then
+    Exit;
+  Result := ComparePackedVersion(VA, VB);
+end;
+
 procedure DetectarVersionAnterior();
 var
   Version, Desinst, Dir: String;
-  Raiz: Integer;
+  Raiz, Comparacion: Integer;
 begin
   CasoAnterior := 0;
   RaizAnterior := 0;
@@ -135,9 +151,10 @@ begin
     RegQueryStringValue(RaizAnterior, ClaveAnterior, 'InstallLocation', Dir);
     DirAnterior := Dir;
 
-    if ComparePackedVersion(VersionAnterior, '{#VersionApp}') > 0 then
+    Comparacion := CompararVersiones(VersionAnterior, '{#VersionApp}');
+    if Comparacion > 0 then
       CasoAnterior := 3
-    else if ComparePackedVersion(VersionAnterior, '{#VersionApp}') = 0 then
+    else if Comparacion = 0 then
       CasoAnterior := 2
     else
       CasoAnterior := 1;
@@ -232,7 +249,9 @@ begin
         MsgBox('No se pudo desinstalar la versión anterior; la instalación continuará sobre ella.',
                mbError, MB_OK);
     end else if PaginaOpcion.Values[2] then begin
-      WizardForm.Close; // muestra la confirmación de salida del asistente
+      // "No instalar nada": no avanzar de página, solo pedir confirmación de salida
+      Result := False;
+      WizardForm.Close;
     end;
   end;
 end;
