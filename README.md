@@ -35,8 +35,9 @@ Dos formas de instalar, elige la que prefieras (versión 3.0):
 
 - **Instalador** (recomendado):
   **[WinGet_Expert_Instalador_v3.0.exe](https://github.com/mikear/Winget-Expert/raw/main/dist/WinGet_Expert_Instalador_v3.0.exe)**
-  (~47 MB, asistente en español: accesos directos, menú Inicio y
-  desinstalación desde "Aplicaciones instaladas").
+  (~47 MB, asistente en español: detecta versiones anteriores y te deja
+  elegir cómo continuar, crea accesos directos y se desinstala desde
+  "Aplicaciones instaladas").
 - **Portable**:
   **[WinGet_Expert_v3.0.exe](https://github.com/mikear/Winget-Expert/raw/main/dist/WinGet_Expert_v3.0.exe)**
   (~45 MB, sin instalación: no requiere Python, doble clic y listo).

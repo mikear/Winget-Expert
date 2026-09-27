@@ -51,9 +51,12 @@
 ## 📦 **Instalación**
 
 ### **Opción 1: Instalador (recomendado)**
-1. Descarga `WinGet_Expert_Instalador.exe`
+1. Descarga `WinGet_Expert_Instalador_v3.0.exe`
 2. Doble clic y sigue el asistente (en español)
-3. Crea accesos directos y entrada en "Aplicaciones instaladas"
+3. Si ya tenías una versión anterior, el asistente te avisa y te deja
+   elegir: actualizar sobre ella, desinstalarla primero o cancelar.
+   Si la aplicación está abierta, te pedirá cerrarla antes de continuar.
+4. Crea accesos directos y entrada en "Aplicaciones instaladas"
 
 ### **Opción 2: Ejecutable Portable**
 1. Descarga `WinGet_Expert.exe`

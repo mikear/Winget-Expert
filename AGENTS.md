@@ -36,8 +36,12 @@ Entry: `main.py` → `MainWindow` (`src/ui/main_window.py`).
 - `winget_gui.spec` — PyInstaller one-file build; `assets/` (icon, FA font) bundled via `datas`
 - `instalador.iss` — Inno Setup 6 script (Spanish); builds
   `dist/WinGet_Expert_Instalador_v<ver>.exe` from the portable exe:
-  `& "$env:LOCALAPPDATA\Programs\Inno Setup 6\ISCC.exe" instalador.iss`
-  (ISCC lives in %LOCALAPPDATA%\Programs\Inno Setup 6 on this machine)
+  `& "$env:LOCALAPPDATA%\Programs\Inno Setup 6\ISCC.exe" instalador.iss`
+  (ISCC lives in %LOCALAPPDATA%\Programs\Inno Setup 6 on this machine).
+  Detects a previous install (uninstall registry key, HKLM64/32 + HKCU32/64)
+  and shows a custom wizard page: update in place / uninstall first / exit,
+  with special cases for same version (reinstall) and newer installed
+  (downgrade warning); refuses to continue while the app window is open.
 
 ## WinGet parser (most bug-prone area)
 
