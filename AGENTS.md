@@ -32,7 +32,8 @@ Entry: `main.py` → `MainWindow` (`src/ui/main_window.py`).
 - `tools/actualizar_imagenes_readme.py` — regenerates `docs/banner.png`
   (exact splash render) + the 4 README screenshots with real data; MUST run
   with the native Windows platform (offscreen breaks font rendering).
-- `debug_winget.py` — capture real winget output for parser work
+- `debug_winget.py` — local-only diagnostic (captures real winget output for
+  parser work); deliberately untracked and gitignored, do not commit it
 - `winget_gui.spec` — PyInstaller one-file build; `assets/` (icon, FA font) bundled via `datas`
 - `instalador.iss` — Inno Setup 6 script (Spanish); builds
   `dist/WinGet_Expert_Instalador_v<ver>.exe` from the portable exe:

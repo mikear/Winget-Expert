@@ -18,6 +18,9 @@ dist/
 .idea/
 *.swp
 
+# Herramientas locales (no se publican)
+debug_winget.py
+
 # Temporales Windows
 Thumbs.db
 Desktop.ini
