@@ -159,11 +159,14 @@ $env:QT_QPA_PLATFORM='offscreen'; python -c "..."   # smoke: build MainWindow/di
   `WinGet_Expert.exe` (`DestName`) so shortcuts survive upgrades.
 - Font Awesome (`assets/fonts/fa-solid-900.ttf`, CC BY 4.0 — keep the About
   attribution) loads at startup in `main.py`; works frozen via `sys._MEIPASS`.
-- Don't commit `build/`, `dist/`, `__pycache__/` (see `.gitignore`).
-- Exception: the release binaries `dist/WinGet_Expert_v<ver>.exe` and
-  `dist/WinGet_Expert_Instalador_v<ver>.exe` are tracked via `git add -f`
-  on purpose (README links them); rebuilds need the same flag, and the
-  previous version's binaries must be removed from git when bumping.
+- Don't commit `build/`, `dist/`, `__pycache__/`, `*.exe` or `*.log`
+  (see `.gitignore`).
+- The release binaries are NOT in git: they are assets of the GitHub
+  Release (`…/releases/tag/v<ver>`) and the README download links point to
+  `…/releases/download/v<ver>/<file>`. To publish a version: build both
+  exes, create the tag + release and upload the two files (`gh` needs
+  `gh auth login` first; a `repo`-scoped token also works), then update
+  the README links. `dist/` stays local-only output.
   Kill running exe instances first — Windows locks the file and the build
   fails with `PermissionError`.
 - Frozen-exe crash with no output: check Event Viewer → Application, Error 1000

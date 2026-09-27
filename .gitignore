@@ -5,10 +5,18 @@ __pycache__/
 .venv/
 venv/
 
-# PyInstaller (el .exe se regenera con: pyinstaller winget_gui.spec)
+# Builds y binarios (los de release se publican como assets de GitHub
+# Releases, nunca se versionan)
 build/
 dist/
 *.spec.bak
+*.exe
+*.log
+
+# Editores
+.vscode/
+.idea/
+*.swp
 
 # Temporales Windows
 Thumbs.db

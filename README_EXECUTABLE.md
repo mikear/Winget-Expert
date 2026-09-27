@@ -1,6 +1,6 @@
 # WinGet Expert — Binarios
 
-## Binarios disponibles (carpeta `dist/`)
+## Binarios disponibles (GitHub Releases)
 
 | Archivo | Tipo | Descripción |
 |---|---|---|
@@ -10,7 +10,9 @@
 Ambos llevan la versión en el nombre (definida en `src/version.py`); el
 instalador coloca la aplicación como `WinGet_Expert.exe` (sin versión) en
 `Archivos de programa` para que los accesos directos sobrevivan a
-actualizaciones. Disponibles para descarga en el [README](README.md).
+actualizaciones. **No se versionan en git**: son los *assets* del release
+de GitHub (`…/releases/tag/v3.0`) y el [README](README.md) enlaza la
+descarga directa. La carpeta `dist/` es solo salida de build (ignorada).
 
 ## Cómo regenerarlos
 
