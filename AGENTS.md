@@ -25,6 +25,9 @@ Entry: `main.py` → `MainWindow` (`src/ui/main_window.py`).
   (Yes/No/OK/Cancel/Close). Never call `QMessageBox.question(...)` static
   methods with StandardButton args; use `mensajes.pregunta/informar/
   advertir/error/acerca_de` and `mensajes.botonera_*` instead.
+- `src/ui/icons.py` — Font Awesome glyphs as hex constants (`REFRESH`,
+  `INSTALL`…) drawn with `icons.icon(code)`; palette-colored, so they follow
+  the active theme. Use this for toolbar/button icons — never emoji.
 - `src/ui/app_icon.py` — single source of the app-icon design (rounded blue
   square, white box, green download badge, same as the splash). The splash
   paints it via `pintar_icono_app()`; `create_icon.py` renders
@@ -42,12 +45,22 @@ Entry: `main.py` → `MainWindow` (`src/ui/main_window.py`).
   Detects a previous install (uninstall registry key, HKLM64/32 + HKCU32/64)
   and shows a custom wizard page: update in place / uninstall first / exit,
   with special cases for same version (reinstall) and newer installed
-   (downgrade warning); refuses to continue while the app window is open.
+  (downgrade warning); refuses to continue while the app window is open.
+  On a clean machine there is no uninstall key → no page is ever created.
+- Installer build order: `pyinstaller winget_gui.spec` **first** — ISCC dies
+  if `dist/WinGet_Expert_v{#VersionApp}.exe` is missing. Recompiling after a
+  `[Code]` change takes ~5 s, so iterate freely.
+- Installer test loop (no UAC, no admin):
+  `& dist\WinGet_Expert_Instalador_v<ver>.exe /CURRENTUSER /LOG=<file>` — the
+  log names the event function that threw. **It really installs** (HKCU +
+  `%LOCALAPPDATA%\Programs`) if you click through: uninstall that copy
+  afterwards or you end up with two uninstall entries (per-user + Program
+  Files).
 - Inno `[Code]` gotcha: `ComparePackedVersion` takes **Int64**, not String —
   passing a version text compiles fine but dies at runtime with
   `Runtime error (at X:Y): Type Mismatch` the moment Setup opens. Convert
   first with `StrToVersion(text, v)`. Diagnose runtime script errors with
-  `setup.exe /LOG=...` (the log pinpoints the failing event function).
+  `setup.exe /LOG=...` (see the test loop above).
   Also: `and`/`or` DO short-circuit in this Pascal Script, so
   `(Page <> nil) and (Page.ID = ...)` guards are safe.
 
@@ -119,7 +132,8 @@ against winget 1.29 (Spanish locale):
 ## Verify (no test suite in repo)
 
 ```powershell
-python -m py_compile main.py src/core/models.py src/core/settings.py src/core/winget_client.py src/core/install_dates.py src/ui/main_window.py src/ui/dialogs.py src/ui/additional_dialogs.py src/ui/theme.py
+pip install -r requirements.txt   # PySide6 (+ pyinstaller/pillow, dev only)
+python -m compileall -q main.py src tools create_icon.py   # exit 0 = OK
 $env:QT_QPA_PLATFORM='offscreen'; python -c "..."   # smoke: build MainWindow/dialogs
 ```
 
@@ -170,6 +184,15 @@ $env:QT_QPA_PLATFORM='offscreen'; python -c "..."   # smoke: build MainWindow/di
   the README links. `dist/` stays local-only output.
   Kill running exe instances first — Windows locks the file and the build
   fails with `PermissionError`.
+- `gh` is normally logged OUT on this machine (no `hosts.yml`), while
+  `git push` works through Windows Credential Manager — which usually also
+  holds a `gho_` token that the GitHub API accepts (fetch it with
+  `git credential fill`; never print or commit it).
+- Repo is public: no local paths (`C:\Users\…`) or personal emails in
+  committed files — the contact email in the About dialog is intentional,
+  leave it. `docs/banner.png` and `docs/screenshots/` are rendered from
+  this machine with the **real** installed-package list; eyeball regenerated
+  images before committing them.
 - Frozen-exe crash with no output: check Event Viewer → Application, Error 1000
   (`Qt6Core.dll`); then build a `--console --name WinGet_Debug` variant to see
   the traceback (delete its `.spec`/exe/`build/` afterwards).
